@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 1 (data) done. Next up: Phase 2 (scoreboard). See the [roadmap](#roadmap).
+> **Status:** Phase 2 (scoreboard) done. Next up: Phase 3 (find candidates). See the [roadmap](#roadmap).
 
 ---
 
@@ -51,7 +51,18 @@ A single cutoff date (not a random split) stops the model from peeking at the fu
 - 73% of hidden test deals involve a **brand new company** that never appears in training.
 - **Limit:** only investors with 5+ deals before 2012 are tested. 4,312 newer investors are left out, so results describe established investors, not first-timers.
 
-Metrics: **NDCG@k** and **recall@k**, with confidence intervals. Every model must beat two simple baselines, **random** and **most popular**.
+Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidence intervals. Every model must beat two simple baselines, **random** and **most popular**.
+
+- **Draft board:** each investor's model ranks the 4,693 companies that raised money on or after the cutoff, minus companies they already backed.
+- Scores are reported **overall**, for **known** companies (seen before 2012) and for **new** companies (never seen before 2012).
+- A win only counts when the paired confidence interval on the difference is entirely above zero.
+
+**Baseline scoreboard (Phase 2), NDCG@10:**
+
+- Random: 0.0020 (95% CI 0.0007 to 0.0035). The maths predicts random recall@10 of about 0.0021, and the measured 0.0025 agrees.
+- Most popular: 0.0055 (95% CI 0.0031 to 0.0083). A real win over random overall and on known companies.
+- Most popular scores **exactly 0 on new companies**: known companies always outrank them, so it can never recommend a new startup. 73% of real deals were new startups. This is the gap the next models must close.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -78,12 +89,14 @@ ML-Recommendation-engine/
 ├── README.md
 ├── LICENSE                 MIT, covers the code only
 ├── docs/decisions.md       why we chose what we chose
+├── docs/session-log.md     what each working session did, and where we stopped
 ├── .github/workflows/      CI: runs tests on every PR
 ├── backend/                Python: data, maths, models, API
 │   ├── recommender/
 │   │   ├── data/           Phase 1: load, clean, split
-│   │   ├── maths/          ALL the maths, one job per file (Phases 2 to 5)
-│   │   ├── models/         uses the maths to make picks
+│   │   ├── maths/          ALL the maths, one job per file (ranking metrics and confidence intervals so far)
+│   │   ├── models/         uses the maths to make picks (baselines: Phase 2)
+│   │   ├── evaluation/     the referee: draft board and scoreboard (Phase 2)
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
@@ -114,7 +127,7 @@ flowchart LR
 
 - [x] **0 · Setup:** repo, README, tests on every PR. *Done when one smoke test passes on GitHub Actions on a PR.*
 - [x] **1 · Data:** load, clean, split at 1 Jan 2012. *All 5 pass marks met.*
-- [ ] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals.
+- [x] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals. *All 5 pass marks met.*
 - [ ] **3 · Find candidates:** cosine similarity.
 - [ ] **4 · Rank:** matrix factorisation with hand-written gradients.
 - [ ] **5 · Fair chances:** Thompson sampling.
@@ -138,6 +151,9 @@ pytest -v
 
 # Print the Phase 1 data report
 python -m recommender.data.build_dataset
+
+# Print the Phase 2 baseline scoreboard
+python -m recommender.evaluation.scoreboard
 ```
 
 ---

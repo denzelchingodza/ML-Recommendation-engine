@@ -6,3 +6,10 @@ pytest>=8.0
 
 # Reading CSVs and grouping deals by investor (Phase 1)
 pandas>=2.2
+
+# The maths: arrays, logs and resampling (Phase 2)
+numpy>=1.26
+
+# Trusted libraries, used ONLY in tests to check our hand-written maths (Phase 2)
+scikit-learn>=1.4
+scipy>=1.11
