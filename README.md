@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 0 (setup) in progress. See the [roadmap](#roadmap).
+> **Status:** Phase 0 (setup) done. Next up: Phase 1 (data). See the [roadmap](#roadmap).
 
 ---
 
@@ -96,12 +96,13 @@ flowchart LR
 - **`staging`**: merged features are checked again here.
 - **`main`**: production. Changes only arrive from `staging`, and releases are tagged.
 - Nothing is pushed until it is proven to work. Every PR must pass CI.
+- `main` and `staging` are **protected**: no direct pushes, the `backend-tests` CI check must pass before merging, and nobody can bypass these rules (the owner included). Force pushes and branch deletion are blocked.
 
 ---
 
 ## Roadmap
 
-- [ ] **0 · Setup:** repo, README, tests on every PR. *Done when one smoke test passes on GitHub Actions on a PR.*
+- [x] **0 · Setup:** repo, README, tests on every PR. *Done when one smoke test passes on GitHub Actions on a PR.*
 - [ ] **1 · Data:** load, clean, hide some deals for testing.
 - [ ] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals.
 - [ ] **3 · Find candidates:** cosine similarity.

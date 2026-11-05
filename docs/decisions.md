@@ -38,3 +38,11 @@ Why we chose what we chose. Newest at the bottom.
 - The first skeleton commit goes straight to `main`, the only exception, because an empty repo has no branch yet.
 - Files are created in the phase they belong to, never as empty placeholders.
 - The scoreboard (Phase 2) is built before any model, so models are never judged by a scoreboard built after seeing their results.
+
+## 2026-11-05 · Branch protection on `main` and `staging`
+
+- Changes can only arrive through a pull request. No direct pushes.
+- The `backend-tests` CI check must pass before a PR can merge.
+- No bypassing, the owner included. Force pushes and branch deletion are blocked.
+- **"Require approvals" is deliberately off.** GitHub does not let you approve your own PR, and this is a one-person project, so requiring approval would block every merge. Review still happens: the owner reads every PR before merging.
+- **Proof:** this rule was tested with the `feature/phase-0-wrapup` PR into `staging`, then `staging` into `main`.
