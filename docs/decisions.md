@@ -84,3 +84,25 @@ Why we chose what we chose. Newest at the bottom.
 
 - The CSVs are not UTF-8. Read as Mac Roman, names like "MiaSolé" come out correctly.
 - A few names were already garbled in the source (for example `agÃ¡mi Systems`). They are left unchanged rather than guessed.
+
+## 2026-11-05 · Phase 2: the draft board
+
+- Each investor's ranking covers the **4,693 companies that raised money on or after 1 Jan 2012** (1,552 known, 3,141 new), minus companies that investor already backed before the cutoff.
+- **Rejected:** ranking all 17,727 companies. Most stopped raising years before 2012, so an investor could not back them, and the scores would be meaningless.
+- **Known catch:** the board quietly reveals which companies survived long enough to raise money after the cutoff. It does not reveal who invested, which is the actual answer. The catch is the same for every model, so comparisons stay fair.
+- Every hidden test company is checked to be on the board. If one is missing, scoring stops with an error.
+
+## 2026-11-05 · Phase 2: scoring rules
+
+- **k = 10:** an investor glancing at a top-10 list.
+- **Ties are broken randomly** with a fixed seed, never alphabetically, so no company gets a free boost from its name.
+- **Segments:** overall, known companies and new companies. An investor with no hidden deals in a segment is left out of that segment (NaN), never counted as a 0.
+- **Confidence intervals:** 95% percentile bootstrap over investors, 10,000 resamples. Model comparisons use a **paired** bootstrap (each investor compared with themselves).
+- scikit-learn and scipy are used **only in tests**, to check the hand-written maths.
+
+## 2026-11-05 · Phase 2 finding: most popular cannot see new companies
+
+- Most popular beats random overall (NDCG@10 +0.0035, CI +0.0007 to +0.0066) and on known companies (+0.0107).
+- On new companies it scores exactly 0 and loses to random (-0.0018, CI -0.0035 to -0.0005). Known companies always have higher popularity, so its top 10 never contains a new company.
+- **Consequence:** with 73% of hidden deals being new companies, the next model must use company labels to score new companies at all.
+- **Caution for the PR gate:** hits are rare, so intervals are wide compared with the scores. Small improvements will often read as "could be luck".
