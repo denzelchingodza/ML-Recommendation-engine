@@ -45,4 +45,6 @@ Why we chose what we chose. Newest at the bottom.
 - The `backend-tests` CI check must pass before a PR can merge.
 - No bypassing, the owner included. Force pushes and branch deletion are blocked.
 - **"Require approvals" is deliberately off.** GitHub does not let you approve your own PR, and this is a one-person project, so requiring approval would block every merge. Review still happens: the owner reads every PR before merging.
-- **Proof:** this rule was tested with the `feature/phase-0-wrapup` PR into `staging`, then `staging` into `main`.
+- **What actually happened:** PR #1 (`feature/phase-0-wrapup`) was merged straight into `main` by mistake, because the PR base was left on `main`. CI still had to pass, so the protection rules held. `staging` was then synced from `main` in PR #2.
+- **Proof of the full flow:** the `feature/fix-decision-log` PR (this correction) goes into `staging`, then `staging` into `main`, with CI green at each step.
+- **Lesson:** when opening a feature PR, always check the base branch is `staging`.
