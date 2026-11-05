@@ -3,3 +3,6 @@
 
 # Testing (Phase 0)
 pytest>=8.0
+
+# Reading CSVs and grouping deals by investor (Phase 1)
+pandas>=2.2
