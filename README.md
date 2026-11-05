@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 0 (setup) done. Next up: Phase 1 (data). See the [roadmap](#roadmap).
+> **Status:** Phase 1 (data) done. Next up: Phase 2 (scoreboard). See the [roadmap](#roadmap).
 
 ---
 
@@ -39,9 +39,17 @@ Rule: the core maths is written in NumPy, then tested against a trusted library 
 
 ## How it is evaluated
 
-1. Hide some of each investor's real investments.
-2. Ask the model to rank companies for that investor.
+1. Split every deal at one cutoff date, **1 January 2012**. Deals before it are for training, deals after it are hidden.
+2. Ask the model to rank companies for each investor, using only what happened before the cutoff.
 3. A good model ranks the hidden companies near the top.
+
+A single cutoff date (not a random split) stops the model from peeking at the future.
+
+**Current numbers (Phase 1):**
+
+- 28,614 training pairs, 5,878 hidden test pairs, 828 test investors.
+- 73% of hidden test deals involve a **brand new company** that never appears in training.
+- **Limit:** only investors with 5+ deals before 2012 are tested. 4,312 newer investors are left out, so results describe established investors, not first-timers.
 
 Metrics: **NDCG@k** and **recall@k**, with confidence intervals. Every model must beat two simple baselines, **random** and **most popular**.
 
@@ -56,6 +64,8 @@ This project uses the **Crunchbase 2013 Snapshot © 2013**, from the October 201
 - This export predates Crunchbase's December 2013 switch to a non-commercial licence, so CC-BY applies.
 - Newer Crunchbase data is **not** used.
 - Version 1 uses company category labels only. Company descriptions arrive in Version 2.
+- The files are committed in [`backend/data/raw/`](backend/data/raw/SOURCE.md) with SHA-256 fingerprints. The loader refuses to run if a single byte changes.
+- The files are Mac Roman encoded, and a few names were already garbled in the source. See [SOURCE.md](backend/data/raw/SOURCE.md).
 
 Only public data is used in this project.
 
@@ -71,7 +81,7 @@ ML-Recommendation-engine/
 ├── .github/workflows/      CI: runs tests on every PR
 ├── backend/                Python: data, maths, models, API
 │   ├── recommender/
-│   │   ├── data/           Phase 1
+│   │   ├── data/           Phase 1: load, clean, split
 │   │   ├── maths/          ALL the maths, one job per file (Phases 2 to 5)
 │   │   ├── models/         uses the maths to make picks
 │   │   └── api/            Phase 8
@@ -103,7 +113,7 @@ flowchart LR
 ## Roadmap
 
 - [x] **0 · Setup:** repo, README, tests on every PR. *Done when one smoke test passes on GitHub Actions on a PR.*
-- [ ] **1 · Data:** load, clean, hide some deals for testing.
+- [x] **1 · Data:** load, clean, split at 1 Jan 2012. *All 5 pass marks met.*
 - [ ] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals.
 - [ ] **3 · Find candidates:** cosine similarity.
 - [ ] **4 · Rank:** matrix factorisation with hand-written gradients.
@@ -125,6 +135,9 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pytest -v
+
+# Print the Phase 1 data report
+python -m recommender.data.build_dataset
 ```
 
 ---
