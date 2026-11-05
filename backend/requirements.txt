@@ -1,0 +1,5 @@
+# Backend Python packages.
+# Each package is added in the phase that needs it, with the reason.
+
+# Testing (Phase 0)
+pytest>=8.0
