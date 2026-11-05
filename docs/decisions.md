@@ -48,3 +48,39 @@ Why we chose what we chose. Newest at the bottom.
 - **What actually happened:** PR #1 (`feature/phase-0-wrapup`) was merged straight into `main` by mistake, because the PR base was left on `main`. CI still had to pass, so the protection rules held. `staging` was then synced from `main` in PR #2.
 - **Proof of the full flow:** the `feature/fix-decision-log` PR (this correction) goes into `staging`, then `staging` into `main`, with CI green at each step.
 - **Lesson:** when opening a feature PR, always check the base branch is `staging`.
+
+## 2026-11-05 · Phase 1 pass mark 2 corrected (no code changed)
+
+- The pass mark originally said "3 undated rows dropped".
+- The real-data test failed: the code dropped **2 rows with missing ids** and **1 undated row**.
+- Looking at the actual rows: 2 are broken junk rows (one has the street address "57 Woodstock Road" where a company id should be, the other is empty), most likely from a line in the source file that broke apart. 1 is a real deal (Rockley Ventures into Kotura) with no date.
+- The earlier quick check counted all 3 as "no date" because the junk rows also have no date. The code is more precise, so the pass mark was wrong, not the code.
+- **Corrected pass mark:** 2 rows with missing ids and 1 undated row. The total of 3 dropped rows and the 40,977 pairs did not change.
+- **No code was changed to make the test pass.** Changing a pass mark after a run is only acceptable when the real rows show the original count was mislabelled.
+
+## 2026-11-05 · Phase 1: data is committed, with fingerprints
+
+- The two CSVs (about 13 MB) are committed in `backend/data/raw/`, copied unchanged from the source at commit `9303ebdc`.
+- **Why:** if the source mirror ever disappears or changes, the project can still be rebuilt, and CI never needs the internet for data.
+- The loader checks each file's SHA-256 fingerprint and stops with a clear error if anything differs.
+- **Rejected:** a download script, because the project would depend on someone else's repo staying online and unchanged.
+
+## 2026-11-05 · Phase 1: one cutoff date, 1 January 2012
+
+- Deals before the cutoff train the model. Deals on or after it are hidden for testing.
+- **Rejected:** a random split. It leaks the future: a company's later fame (for example many investors in later rounds) would help "predict" earlier deals.
+- **Rejected:** hiding each investor's latest 20%. It still leaks across investors.
+- Cutoffs compared before choosing: Jul 2011, Jan 2012, Jul 2012, Jan 2013. Jan 2012 gave the most test investors (828) with a median of 4 hidden deals each, while keeping 28,614 training pairs.
+- Only investors with 5+ training companies are tested. This leaves out 4,312 newer investors, so results describe established investors.
+- Repeat investments in the same company keep the FIRST date, so a company first backed before 2012 can never appear in the test.
+
+## 2026-11-05 · Phase 1 finding: 73% of test deals are brand new companies
+
+- 4,275 of the 5,878 hidden test pairs involve a company with no deals before 2012.
+- **Why it matters:** matrix factorisation (Phase 4) learns one vector per company from history, so it cannot score a company it has never seen. Company labels must carry these cases.
+- **Consequence for Phase 2:** the scoreboard must report brand new and known companies separately, or results will be misread.
+
+## 2026-11-05 · Phase 1: Mac Roman encoding
+
+- The CSVs are not UTF-8. Read as Mac Roman, names like "MiaSolé" come out correctly.
+- A few names were already garbled in the source (for example `agÃ¡mi Systems`). They are left unchanged rather than guessed.
