@@ -15,6 +15,7 @@ Newest session at the bottom. Read this first at the start of every session.
 - Public data only. Never Funema or MAN.T.EL data, never Harvest code.
 - No em dashes anywhere. No tables in chat. Basketball analogies. Diagrams where possible.
 - Before any maths file is merged, walk through it line by line (agreed from Phase 2 on).
+- Mara never runs git commands on Denzel's Mac (git needs to delete its own lock files there). Mara only reads and writes project files; Denzel runs git.
 
 ## 2026-11-05 · Session 1 (morning): planning, Phase 0 and Phase 1
 
@@ -45,8 +46,13 @@ Newest session at the bottom. Read this first at the start of every session.
 - Results: random NDCG@10 0.0020, most popular 0.0055. Most popular scores exactly 0 on new companies.
 - The line-by-line walkthrough of the maths files was postponed: Denzel asked for a PDF explaining the maths, the code and its history instead.
 
+**Wrap-up**
+- Phase 2 merged: PR #7 into `staging` (47/47 tests on Python 3.12), PR #8 into `main`.
+- Delivered the maths guide PDF (12 pages, 8 diagrams): the story, the idea, a worked example and the code for the cutoff split, recall, NDCG, the bootstrap and the baselines.
+- Mistake: Mara ran `git fetch` on Denzel's Mac, which left `.git/objects/maintenance.lock` behind. It was renamed to `.git/stale-maintenance-lock-from-mara` (safe to delete). New standing rule above: Mara never runs git on the Mac.
+
 **Where we stopped**
-- Merging Phase 2, then writing the PDF (maths explained simply with examples and diagrams, the backstory of each piece of maths, then the code and how it fits the project), covering Phases 0 to 2.
+- End of day. This log update still needs its own small PR (`feature/session-log-nov-5` into `staging`, then `main`).
 
 **Next**
 - Phase 3 · Find candidates: company label vectors and cosine similarity, aimed at the new-company gap.
