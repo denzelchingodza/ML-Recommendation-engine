@@ -43,7 +43,49 @@ def test_pass_mark_4_known_and_new_are_reported_separately(output):
 
 def test_pass_mark_5_same_seed_same_numbers(output):
     again = run()
-    for model in ("random", "most_popular"):
+    for model in ("random", "most_popular", "label_similarity"):
         pd.testing.assert_frame_equal(
             output["results"][model]["per_investor"], again["results"][model]["per_investor"]
         )
+
+
+# Phase 3 pass marks (written before the first run)
+
+
+@pytest.mark.parametrize("segment", ["new", "overall"])
+def test_phase3_label_similarity_really_beats_random(output, segment):
+    diff = compare(
+        output["results"]["random"]["per_investor"],
+        output["results"]["label_similarity"]["per_investor"],
+        "ndcg",
+        segment,
+    )
+    assert diff.low > 0, f"{segment}: difference CI {diff.low:.4f} to {diff.high:.4f} is not entirely above zero"
+
+
+def test_phase3_shuffled_labels_collapse_to_random(output):
+    """Leak check: with labels scrambled between companies, the real signal is gone.
+
+    If the score stayed high, the model would be learning from something other
+    than the labels (a leak), and every Phase 3 result would be suspect.
+    """
+    import numpy as np
+
+    from recommender.data.load_data import load_investments
+    from recommender.evaluation.draft_board import build_draft_board
+    from recommender.evaluation.scoreboard import score_model, summarise
+    from recommender.models.label_similarity import LabelSimilarityRanker
+
+    dataset = output["dataset"]
+    shuffled = dataset.companies.copy()
+    rng = np.random.default_rng(99)
+    for column in ("category_code", "state_code"):
+        shuffled[column] = rng.permutation(shuffled[column].to_numpy())
+    board = build_draft_board(load_investments(), dataset.split_report.cutoff)
+    per = score_model(LabelSimilarityRanker(shuffled).fit(dataset.train), dataset, board)
+
+    shuffled_ci = next(r.interval for r in summarise(per) if r.metric == "ndcg" and r.segment == "overall")
+    random_ci = summary(output, "random", "ndcg", "overall")
+    real_ci = summary(output, "label_similarity", "ndcg", "overall")
+    assert shuffled_ci.low <= random_ci.high, "shuffled labels still beat random: something is leaking"
+    assert shuffled_ci.high < real_ci.low, "real labels do not clearly beat shuffled labels"

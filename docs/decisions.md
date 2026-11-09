@@ -106,3 +106,17 @@ Why we chose what we chose. Newest at the bottom.
 - On new companies it scores exactly 0 and loses to random (-0.0018, CI -0.0035 to -0.0005). Known companies always have higher popularity, so its top 10 never contains a new company.
 - **Consequence:** with 73% of hidden deals being new companies, the next model must use company labels to score new companies at all.
 - **Caution for the PR gate:** hits are rare, so intervals are wide compared with the scores. Small improvements will often read as "could be luck".
+
+## 2026-11-09 · Phase 3: labels are category and state
+
+- All 4,693 draft board companies are in the company table. Category: 41 values, 1% missing. State: 47 values, 2% missing.
+- **Rejected:** city (712 values, too thin), country (every company is in the USA, so this is a US-only dataset), round type (it belongs to deals, and new companies only have rounds after the cutoff, so it would leak the future).
+- A missing label means no tick. A company with no labels scores 0 instead of breaking the maths.
+- Category and state get equal weight. Not tuned.
+
+## 2026-11-09 · Phase 3: label similarity results
+
+- Investor checklist = sum of the checklists of the companies they backed before the cutoff (each company once). Score = cosine similarity.
+- NDCG@10 overall 0.0171 vs most popular 0.0055 vs random 0.0020. New companies 0.0172 vs 0 for most popular.
+- On known companies it ties with most popular (-0.0024, CI -0.0102 to +0.0055). The prediction before the run was that most popular would win there; that was wrong.
+- **Leak check (written before running):** labels shuffled between companies must collapse the score to around random. Result: 0.0005 (CI 0.0000 to 0.0011), overlapping random. Kept as a permanent test. Shuffled is slightly below random because wrong labels point the model at the wrong companies.

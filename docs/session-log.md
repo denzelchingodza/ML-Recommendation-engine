@@ -56,3 +56,44 @@ Newest session at the bottom. Read this first at the start of every session.
 
 **Next**
 - Phase 3 · Find candidates: company label vectors and cosine similarity, aimed at the new-company gap.
+
+## 2026-11-06 · Session 3: log PR, Phase 3 started
+
+**Done**
+- Merged the 5 Nov session log: PR #9 into `staging`, PR #10 into `main`.
+- Local `staging` was out of date, so `git checkout staging` refused to switch. Fixed with `git checkout staging` and `git pull`. New habit: run those two at the start of every session.
+
+**Phase 3 · Find candidates: planning**
+- Checked the labels on the 4,693 draft board companies: category (41 kinds, 1% missing) and state (47 kinds, 2% missing) are usable.
+- Dropped: city (712 values, too thin), country (every company is in the USA, so this is a US-only dataset), round type (belongs to deals, and new companies only have rounds after the cutoff, so it would leak the future).
+- Proposal: Phase 3 uses category + state. Not yet confirmed by Denzel.
+- Teaching: a company as a vector, explained as a checklist (tick = 1, empty = 0). Denzel found the number version confusing; the checklist version landed better.
+
+**Where we stopped**
+- Mid-exercise: reading a filled-in checklist backwards (software ticked, NY ticked: answer is a software company in NY). Pick up here.
+
+**Side quest: frontend design sketch (not part of the repo)**
+- Denzel asked for a standalone HTML sketch of what the demo could look like.
+- v1 (mint, airy, "why" colour bar, fit score): Denzel said it felt AI-made, too airy, no actions, hard to understand.
+- v2: dense deal-flow list (stage, raised, last round, location), one plain sentence for "why", actions (Add to pipeline, Pass, Note) with Pipeline and Passed tabs and Undo, filters (stage, first-time raisers).
+- v3: same as v2 in military green (olive #556B2F, dark olive ink). Denzel liked it.
+- Takeaway for Phase 8: lead with the facts investors check first, give real actions, explain each pick in one plain sentence. The "why" must come from the real signals behind the score (Phase 6).
+
+**Next**
+- Finish vectors, then cosine similarity by hand, then confirm category + state, then pass marks, then code.
+
+**Weak spots discussion (6 Nov, after the sketch)**
+- Listed the project's limits for David: predicts what investors back, not what succeeds; 2013 US-only data; thin labels; only established investors tested; "didn't invest" is not "didn't like"; one test period; not live.
+
+## 2026-11-09 · Session 4: Phase 3 built
+
+- Denzel asked to build first and understand the vectors along the way. The checklist exercise is answered (software ticked, NY ticked = software company in NY = [1, 0, 0, 0, 1]); cosine similarity has not been taught by hand yet.
+- Confirmed: labels are category + state. Pass marks written before the run.
+- Built `maths/cosine_similarity.py` and `models/label_similarity.py`, added the model to the scoreboard.
+- All 6 pass marks met. 59 tests pass (with the leak check).
+- Results: NDCG@10 overall 0.0171 (3 times most popular), new companies 0.0172 (most popular: 0), known companies a tie.
+- Leak check: shuffled labels collapse to 0.0005. Kept as a permanent test.
+
+**Next**
+- Phase 3 PR, then a short walkthrough of cosine similarity (and a guide PDF section) when Denzel wants it.
+- Phase 4: matrix factorisation with hand-written gradients, combined with the labels for new companies.
