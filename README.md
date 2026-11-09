@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 2 (scoreboard) done. Next up: Phase 3 (find candidates). See the [roadmap](#roadmap).
+> **Status:** Phase 3 (label similarity) done. Next up: Phase 4 (rank with matrix factorisation). See the [roadmap](#roadmap).
 
 ---
 
@@ -63,6 +63,14 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - Most popular: 0.0055 (95% CI 0.0031 to 0.0083). A real win over random overall and on known companies.
 - Most popular scores **exactly 0 on new companies**: known companies always outrank them, so it can never recommend a new startup. 73% of real deals were new startups. This is the gap the next models must close.
 
+**Phase 3, label similarity, NDCG@10:**
+
+- Every company becomes a one-hot checklist of its **category and state**. Every investor becomes the sum of the checklists of their pre-2012 deals. Each startup is scored by cosine similarity to the investor.
+- Overall: **0.0171** (95% CI 0.0123 to 0.0222), about 3 times most popular. A real win over both baselines.
+- New companies: **0.0172**, a real win over random and most popular (which scores 0). This closes the cold start gap.
+- Known companies: a tie with most popular (difference could be luck).
+- **Leak check:** with labels shuffled between companies, the score collapses to 0.0005, around random. The signal comes from the real labels.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -94,8 +102,8 @@ ML-Recommendation-engine/
 ├── backend/                Python: data, maths, models, API
 │   ├── recommender/
 │   │   ├── data/           Phase 1: load, clean, split
-│   │   ├── maths/          ALL the maths, one job per file (ranking metrics and confidence intervals so far)
-│   │   ├── models/         uses the maths to make picks (baselines: Phase 2)
+│   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity)
+│   │   ├── models/         uses the maths to make picks (baselines: Phase 2, label similarity: Phase 3)
 │   │   ├── evaluation/     the referee: draft board and scoreboard (Phase 2)
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
@@ -128,7 +136,7 @@ flowchart LR
 - [x] **0 · Setup:** repo, README, tests on every PR. *Done when one smoke test passes on GitHub Actions on a PR.*
 - [x] **1 · Data:** load, clean, split at 1 Jan 2012. *All 5 pass marks met.*
 - [x] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals. *All 5 pass marks met.*
-- [ ] **3 · Find candidates:** cosine similarity.
+- [x] **3 · Find candidates:** label vectors and cosine similarity. *All pass marks met, plus a shuffled-label leak check.*
 - [ ] **4 · Rank:** matrix factorisation with hand-written gradients.
 - [ ] **5 · Fair chances:** Thompson sampling.
 - [ ] **6 · Explain:** an honest "why" for each pick.
@@ -152,7 +160,7 @@ pytest -v
 # Print the Phase 1 data report
 python -m recommender.data.build_dataset
 
-# Print the Phase 2 baseline scoreboard
+# Print the scoreboard for every model
 python -m recommender.evaluation.scoreboard
 ```
 

@@ -19,10 +19,12 @@ from recommender.maths.confidence_intervals import (
 )
 from recommender.maths.ranking_metrics import ndcg_at_k, recall_at_k
 from recommender.models.baselines import MostPopularRanker, RandomRanker
+from recommender.models.label_similarity import LabelSimilarityRanker
 
 DEFAULT_K = 10
 SEGMENTS = ("overall", "known", "new")
 METRICS = ("recall", "ndcg")
+COMPARISONS = (("random", "most_popular"), ("random", "label_similarity"), ("most_popular", "label_similarity"))
 
 
 def rank_candidates(candidates: np.ndarray, scores: np.ndarray, rng: np.random.Generator) -> np.ndarray:
@@ -104,7 +106,7 @@ def run(k: int = DEFAULT_K, seed: int = 0) -> dict:
     dataset = build_dataset()
     board = build_draft_board(load_investments(), dataset.split_report.cutoff)
     results = {}
-    for model in (RandomRanker(seed), MostPopularRanker()):
+    for model in (RandomRanker(seed), MostPopularRanker(), LabelSimilarityRanker(dataset.companies)):
         model.fit(dataset.train)
         per_investor = score_model(model, dataset, board, k, seed)
         results[model.name] = {"per_investor": per_investor, "summary": summarise(per_investor, seed=seed)}
@@ -115,7 +117,7 @@ def format_report(output: dict) -> str:
     k, results = output["k"], output["results"]
     random_per = results["random"]["per_investor"]
     lines = [
-        f"Phase 2 scoreboard (k = {k}, draft board = {output['board_size']:,} companies, "
+        f"Scoreboard (k = {k}, draft board = {output['board_size']:,} companies, "
         f"{len(random_per):,} test investors)",
         "",
     ]
@@ -127,11 +129,15 @@ def format_report(output: dict) -> str:
         lines.append("")
     lines.append(f"Maths check: random recall@{k} should be about {expected_random_recall(random_per, k):.4f}")
     lines.append("")
-    lines.append("most_popular minus random (paired, 95% CI)")
-    for segment in SEGMENTS:
-        diff = compare(random_per, results["most_popular"]["per_investor"], "ndcg", segment)
-        verdict = "real win" if diff.low > 0 else ("real loss" if diff.high < 0 else "could be luck")
-        lines.append(f"  ndcg@{k} {segment:<8} {diff.mean:+.4f}  ({diff.low:+.4f} to {diff.high:+.4f})  {verdict}")
+    for base, challenger in COMPARISONS:
+        if base not in results or challenger not in results:
+            continue
+        lines.append(f"{challenger} minus {base} (paired, 95% CI)")
+        for segment in SEGMENTS:
+            diff = compare(results[base]["per_investor"], results[challenger]["per_investor"], "ndcg", segment)
+            verdict = "real win" if diff.low > 0 else ("real loss" if diff.high < 0 else "could be luck")
+            lines.append(f"  ndcg@{k} {segment:<8} {diff.mean:+.4f}  ({diff.low:+.4f} to {diff.high:+.4f})  {verdict}")
+        lines.append("")
     return "\n".join(lines)
 
 
