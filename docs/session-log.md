@@ -97,3 +97,18 @@ Newest session at the bottom. Read this first at the start of every session.
 **Next**
 - Phase 3 PR, then a short walkthrough of cosine similarity (and a guide PDF section) when Denzel wants it.
 - Phase 4: matrix factorisation with hand-written gradients, combined with the labels for new companies.
+
+**Phase 3 merged:** PR #11 into `staging` (59/59 on Python 3.12), PR #12 into `main`.
+
+**Phase 4 · Matrix factorisation (same session)**
+- Denzel chose to build Phase 4 now and do a full walkthrough of everything from the beginning afterwards.
+- Explained with "sliders" (hidden profiles) and the rookie with no game tape (new startups get profiles from their labels).
+- Found and fixed an averaging bug before testing (nudges 256 times too small).
+- Matrix factorisation alone: tie overall, much better on known, worse on new. Not promoted.
+- Denzel chose option B: a hybrid. Weight 0.8 chosen on the practice split. 0.0203 vs 0.0171, but not proven (CI crosses zero). Not promoted.
+- Decision: label similarity stays the starter. Both challengers stay in the code on the bench. No more tweaking on this test set.
+
+**Next**
+- Phase 4 PR.
+- The full walkthrough from the beginning (Denzel's request), including cosine similarity, matrix factorisation and gradients. Probably as a guide PDF part 2.
+- Then Phase 5: Thompson sampling.

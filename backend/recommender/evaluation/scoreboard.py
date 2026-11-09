@@ -11,64 +11,29 @@ import pandas as pd
 
 from recommender.data.build_dataset import Dataset, build_dataset
 from recommender.data.load_data import load_investments
-from recommender.evaluation.draft_board import build_draft_board, check_board_covers_test
+from recommender.evaluation.draft_board import build_draft_board
+from recommender.evaluation.scoreboard_core import DEFAULT_K, rank_candidates, score_model  # noqa: F401 (re-exported)
+from recommender.evaluation.tuning import select_blend_weight, select_settings
 from recommender.maths.confidence_intervals import (
     ConfidenceInterval,
     bootstrap_mean_ci,
     paired_bootstrap_diff_ci,
 )
-from recommender.maths.ranking_metrics import ndcg_at_k, recall_at_k
 from recommender.models.baselines import MostPopularRanker, RandomRanker
 from recommender.models.label_similarity import LabelSimilarityRanker
+from recommender.models.hybrid import HybridRanker
+from recommender.models.matrix_factorisation import MatrixFactorisationRanker
 
-DEFAULT_K = 10
 SEGMENTS = ("overall", "known", "new")
 METRICS = ("recall", "ndcg")
-COMPARISONS = (("random", "most_popular"), ("random", "label_similarity"), ("most_popular", "label_similarity"))
-
-
-def rank_candidates(candidates: np.ndarray, scores: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """Highest score first. Ties are broken RANDOMLY, never alphabetically."""
-    tiebreak = rng.random(len(candidates))
-    order = np.lexsort((tiebreak, -scores))  # last key sorts first: score, then tiebreak
-    return candidates[order]
-
-
-def score_model(model, dataset: Dataset, board: np.ndarray, k: int = DEFAULT_K, seed: int = 0) -> pd.DataFrame:
-    """One row per test investor, with recall@k and NDCG@k for each segment.
-
-    Segments: overall (all hidden deals), known (companies seen in training),
-    new (companies never seen in training). A segment is NaN when the investor
-    has no hidden deals of that kind, so it is left out, never counted as 0.
-    """
-    check_board_covers_test(board, dataset.test)
-    train, test = dataset.train, dataset.test
-    known_companies = set(train["company_permalink"])
-    seen_by_investor = train.groupby("investor_permalink")["company_permalink"].apply(set)
-    hidden_by_investor = test.groupby("investor_permalink")["company_permalink"].apply(set)
-
-    rows = []
-    for index, investor in enumerate(sorted(hidden_by_investor.index)):
-        seen = seen_by_investor.get(investor, set())
-        candidates = board[~np.isin(board, list(seen))]  # never recommend what they already backed
-        scores = model.score(index, investor, candidates)
-        if len(scores) != len(candidates):
-            raise ValueError(f"{model.name} returned {len(scores)} scores for {len(candidates)} candidates")
-        ranked = rank_candidates(candidates, scores, np.random.default_rng([seed, index]))
-
-        hidden = hidden_by_investor[investor]
-        segment_sets = {
-            "overall": hidden,
-            "known": hidden & known_companies,
-            "new": hidden - known_companies,
-        }
-        row = {"investor": investor, "n_candidates": len(candidates)}
-        for segment, relevant in segment_sets.items():
-            row[f"n_hidden_{segment}"] = len(relevant)
-            for metric, func in (("recall", recall_at_k), ("ndcg", ndcg_at_k)):
-                row[f"{metric}_{segment}"] = func(ranked, relevant, k) if relevant else np.nan
-        rows.append(row)
-    return pd.DataFrame(rows)
+COMPARISONS = (
+    ("random", "most_popular"),
+    ("random", "label_similarity"),
+    ("most_popular", "label_similarity"),
+    ("label_similarity", "matrix_factorisation"),
+    ("label_similarity", "hybrid"),
+    ("matrix_factorisation", "hybrid"),
+)
 
 
 @dataclass(frozen=True)
@@ -105,12 +70,25 @@ def expected_random_recall(per_investor: pd.DataFrame, k: int = DEFAULT_K) -> fl
 def run(k: int = DEFAULT_K, seed: int = 0) -> dict:
     dataset = build_dataset()
     board = build_draft_board(load_investments(), dataset.split_report.cutoff)
+    settings, tuning = select_settings(dataset.train, dataset.companies, dataset.split_report.cutoff, k=k, seed=seed)
+    weight, blend_tuning = select_blend_weight(dataset.train, dataset.companies, dataset.split_report.cutoff,
+                                               settings, k=k, seed=seed)
     results = {}
-    for model in (RandomRanker(seed), MostPopularRanker(), LabelSimilarityRanker(dataset.companies)):
+    models = (
+        RandomRanker(seed),
+        MostPopularRanker(),
+        LabelSimilarityRanker(dataset.companies),
+        MatrixFactorisationRanker(dataset.companies, seed=seed, **settings),
+        HybridRanker(MatrixFactorisationRanker(dataset.companies, seed=seed, **settings),
+                     LabelSimilarityRanker(dataset.companies), weight),
+    )
+    for model in models:
         model.fit(dataset.train)
         per_investor = score_model(model, dataset, board, k, seed)
         results[model.name] = {"per_investor": per_investor, "summary": summarise(per_investor, seed=seed)}
-    return {"board_size": len(board), "k": k, "dataset": dataset, "results": results}
+    return {"board_size": len(board), "k": k, "dataset": dataset, "results": results,
+            "mf_settings": settings, "mf_tuning": tuning, "mf_model": models[3],
+            "blend_weight": weight, "blend_tuning": blend_tuning}
 
 
 def format_report(output: dict) -> str:
@@ -128,6 +106,18 @@ def format_report(output: dict) -> str:
             lines.append(f"  {r.metric:>6}@{k} {r.segment:<8} {ci.mean:.4f}  (95% CI {ci.low:.4f} to {ci.high:.4f}, n={ci.n})")
         lines.append("")
     lines.append(f"Maths check: random recall@{k} should be about {expected_random_recall(random_per, k):.4f}")
+    if "mf_tuning" in output:
+        lines.append("")
+        lines.append("Matrix factorisation settings, chosen on the practice split (deals before 2012 only):")
+        for settings, score in output["mf_tuning"]:
+            mark = "  <- chosen" if settings == output["mf_settings"] else ""
+            lines.append(f"  {settings}: practice ndcg@{k} {score:.4f}{mark}")
+    if "blend_tuning" in output:
+        lines.append("")
+        lines.append("Hybrid weight on matrix factorisation (rest on label similarity), chosen on the practice split:")
+        for w, score in output["blend_tuning"]:
+            mark = "  <- chosen" if w == output["blend_weight"] else ""
+            lines.append(f"  w = {w:.1f}: practice ndcg@{k} {score:.4f}{mark}")
     lines.append("")
     for base, challenger in COMPARISONS:
         if base not in results or challenger not in results:
