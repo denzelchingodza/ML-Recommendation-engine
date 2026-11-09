@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 3 (label similarity) done. Next up: Phase 4 (rank with matrix factorisation). See the [roadmap](#roadmap).
+> **Status:** Phase 4 (matrix factorisation) done: no promotion, label similarity stays the starter. Next up: Phase 5 (fair chances). See the [roadmap](#roadmap).
 
 ---
 
@@ -71,6 +71,14 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - Known companies: a tie with most popular (difference could be luck).
 - **Leak check:** with labels shuffled between companies, the score collapses to 0.0005, around random. The signal comes from the real labels.
 
+**Phase 4, matrix factorisation and hybrid, NDCG@10 (current starter: label similarity):**
+
+- **Matrix factorisation:** learned investor and startup profiles, with startup profiles built from label profiles plus a personal profile, so new startups are covered. Trained with the pairwise ranking loss (BPR) and hand-written gradients, checked numerically. Settings chosen on a practice split inside the training years.
+  - Overall 0.0172, a tie with label similarity. Much better on known startups (0.0207 vs 0.0088), worse on new (0.0119 vs 0.0172). **Not promoted.**
+- **Hybrid:** 0.8 x matrix factorisation + 0.2 x label similarity (standardised scores, weight chosen on the practice split).
+  - Overall 0.0203, the best on paper, but the paired CI against label similarity (-0.0016 to +0.0080) crosses zero, so the win is not proven. **Not promoted.**
+- Both stay in the code with their losses recorded as visible tests. This is the quality gate idea working: a model that looked better was blocked because its win was not proven.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -102,9 +110,9 @@ ML-Recommendation-engine/
 ├── backend/                Python: data, maths, models, API
 │   ├── recommender/
 │   │   ├── data/           Phase 1: load, clean, split
-│   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity)
-│   │   ├── models/         uses the maths to make picks (baselines: Phase 2, label similarity: Phase 3)
-│   │   ├── evaluation/     the referee: draft board and scoreboard (Phase 2)
+│   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity, ranking loss, score scaling)
+│   │   ├── models/         uses the maths to make picks (baselines, label similarity, matrix factorisation, hybrid)
+│   │   ├── evaluation/     the referee: draft board, scoreboard, and tuning on a practice split
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
@@ -137,7 +145,7 @@ flowchart LR
 - [x] **1 · Data:** load, clean, split at 1 Jan 2012. *All 5 pass marks met.*
 - [x] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals. *All 5 pass marks met.*
 - [x] **3 · Find candidates:** label vectors and cosine similarity. *All pass marks met, plus a shuffled-label leak check.*
-- [ ] **4 · Rank:** matrix factorisation with hand-written gradients.
+- [x] **4 · Rank:** matrix factorisation with hand-written gradients, plus a hybrid. *Neither proved a win over label similarity, so neither was promoted.*
 - [ ] **5 · Fair chances:** Thompson sampling.
 - [ ] **6 · Explain:** an honest "why" for each pick.
 - [ ] **7 · Quality gate:** PR gate, staging, tagged release.

@@ -120,3 +120,25 @@ Why we chose what we chose. Newest at the bottom.
 - NDCG@10 overall 0.0171 vs most popular 0.0055 vs random 0.0020. New companies 0.0172 vs 0 for most popular.
 - On known companies it ties with most popular (-0.0024, CI -0.0102 to +0.0055). The prediction before the run was that most popular would win there; that was wrong.
 - **Leak check (written before running):** labels shuffled between companies must collapse the score to around random. Result: 0.0005 (CI 0.0000 to 0.0011), overlapping random. Kept as a permanent test. Shuffled is slightly below random because wrong labels point the model at the wrong companies.
+
+## 2026-11-09 · Phase 4: matrix factorisation design
+
+- Startup profile = sum of its label profiles (category, state) + its own personal profile if it had deals in training. New startups still get a profile from their labels.
+- Trained with the pairwise ranking loss (BPR, Rendle et al. 2009): "the investor backed A, not a random B", nudging profiles so A scores higher. Gradients written by hand, checked against numerical gradients (worst relative error about 1e-8).
+- **Bug found before testing:** the loss was first averaged over each batch of 256, so every nudge was 256 times too small and the model stayed at coin-flip level (loss 0.698 to 0.693). Switched to summing over the batch, the standard for BPR. Loss then fell from 0.68 to 0.18 over 30 epochs.
+- **Settings chosen on a practice split inside the training years** (learn before 2011, check on 2011), never on the hidden 2012 test. Grid written before the run: dim 16 or 32, reg 0.01 or 0.001. Chosen: dim 32, reg 0.01. Tuning refuses data from the test period.
+
+## 2026-11-09 · Phase 4 result: matrix factorisation not promoted
+
+- NDCG@10 overall 0.0172 vs label similarity 0.0171: a tie (CI -0.0052 to +0.0054).
+- Known startups: much better (0.0207 vs 0.0088, real win). New startups: worse (0.0119 vs 0.0172, real loss).
+- Pass marks 7 (beat label similarity overall) and 8 (not clearly worse on new startups) failed. Kept as strict expected-to-fail tests so the result stays visible.
+- Leak check passed: training on scrambled history collapses the score to around random.
+
+## 2026-11-09 · Phase 4: hybrid, and why we stopped there
+
+- The two models are strong in opposite places, so a hybrid was tried: w x standardised matrix factorisation + (1 - w) x standardised label similarity.
+- **Honesty note:** this idea came AFTER seeing the matrix factorisation test results. To limit that, w was chosen only on the practice split (w = 0.8 from 0.0 to 1.0 in steps of 0.1) and the pass marks were written before the hybrid run.
+- Result: overall 0.0203 vs 0.0171, but the paired CI (-0.0016 to +0.0080) crosses zero. The win is not proven, so it was not promoted. Not clearly worse on new startups (vs label similarity) or known startups (vs matrix factorisation).
+- **Decision:** label similarity stays the starter. Matrix factorisation and the hybrid stay in the code, tested, on the bench. No further tweaking on this test set: the test results have now been seen twice, and tweaking until something passes is how projects fool themselves.
+- A bench model can be promoted later with new evidence (for example Version 2 data or a new test period) through the Phase 7 quality gate.
