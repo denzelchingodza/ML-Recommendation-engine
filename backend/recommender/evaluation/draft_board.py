@@ -1,6 +1,7 @@
 """The draft board: which companies get ranked for each investor.
 
-Board = every company that raised money on or after the cutoff.
+Board = every company that raised money on or after the cutoff
+(and before `end`, when a season has a 12-month test window).
 
 Known catch (logged in docs/decisions.md): the board quietly tells us these
 companies survived long enough to raise money after the cutoff. It does NOT
@@ -15,10 +16,13 @@ class DraftBoardError(Exception):
     """Raised when the board cannot be built honestly."""
 
 
-def build_draft_board(investments: pd.DataFrame, cutoff: str) -> np.ndarray:
-    """Sorted array of company ids with at least one dated deal on or after the cutoff."""
+def build_draft_board(investments: pd.DataFrame, cutoff: str, end: str | None = None) -> np.ndarray:
+    """Sorted array of company ids with at least one dated deal on or after the cutoff (and before end)."""
     dates = pd.to_datetime(investments["funded_at"], format="%Y-%m-%d", errors="coerce")
-    after = investments.loc[dates >= pd.Timestamp(cutoff), "company_permalink"].dropna()
+    inside = dates >= pd.Timestamp(cutoff)
+    if end is not None:
+        inside &= dates < pd.Timestamp(end)
+    after = investments.loc[inside, "company_permalink"].dropna()
     board = np.array(sorted(set(after)))
     if len(board) == 0:
         raise DraftBoardError(f"No companies raised money on or after {cutoff}")

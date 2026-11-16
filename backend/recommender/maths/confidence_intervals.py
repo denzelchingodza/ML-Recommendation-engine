@@ -74,3 +74,41 @@ def paired_bootstrap_diff_ci(values_a, values_b, n_resamples: int = 10_000, leve
     if len(a) != len(b):
         raise ValueError(f"paired values must have the same length, got {len(a)} and {len(b)}")
     return bootstrap_mean_ci(b - a, n_resamples=n_resamples, level=level, seed=seed)
+
+
+def cluster_bootstrap_mean_ci(values, clusters, n_resamples: int = 10_000, level: float = 0.95,
+                              seed: int = 0) -> ConfidenceInterval:
+    """Bootstrap interval for the mean when rows come in groups (clusters).
+
+    Basketball: one player can play in several seasons. Their seasons are not
+    independent games, because a great shooter is great every year. So we pick
+    whole PLAYERS at random (with replacement) and keep all of their seasons
+    together, instead of picking single rows.
+
+    Each fake season's mean = (sum of the picked players' rows) / (number of those rows).
+    With one row per player this is exactly the plain bootstrap.
+    """
+    values = _check_values(values)
+    clusters = np.asarray(clusters)
+    if len(clusters) != len(values):
+        raise ValueError(f"values and clusters must have the same length, got {len(values)} and {len(clusters)}")
+    if not 0 < level < 1:
+        raise ValueError(f"level must be between 0 and 1, got {level}")
+    if n_resamples < 100:
+        raise ValueError(f"n_resamples must be at least 100, got {n_resamples}")
+
+    _, which = np.unique(clusters, return_inverse=True)
+    sums = np.bincount(which, weights=values)    # each player's total
+    counts = np.bincount(which)                  # each player's number of rows
+    n_clusters = len(sums)
+
+    rng = np.random.default_rng(seed)
+    means = np.empty(n_resamples)
+    for start in range(0, n_resamples, _CHUNK):
+        size = min(_CHUNK, n_resamples - start)
+        picks = rng.integers(0, n_clusters, size=(size, n_clusters))  # pick players, with replacement
+        means[start : start + size] = sums[picks].sum(axis=1) / counts[picks].sum(axis=1)
+
+    tail = (1 - level) / 2 * 100
+    low, high = np.percentile(means, [tail, 100 - tail])
+    return ConfidenceInterval(float(values.mean()), float(low), float(high), level, len(values))
