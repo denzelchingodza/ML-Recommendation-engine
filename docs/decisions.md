@@ -142,3 +142,23 @@ Why we chose what we chose. Newest at the bottom.
 - Result: overall 0.0203 vs 0.0171, but the paired CI (-0.0016 to +0.0080) crosses zero. The win is not proven, so it was not promoted. Not clearly worse on new startups (vs label similarity) or known startups (vs matrix factorisation).
 - **Decision:** label similarity stays the starter. Matrix factorisation and the hybrid stay in the code, tested, on the bench. No further tweaking on this test set: the test results have now been seen twice, and tweaking until something passes is how projects fool themselves.
 - A bench model can be promoted later with new evidence (for example Version 2 data or a new test period) through the Phase 7 quality gate.
+
+## 2026-11-16 · Phase 5: exposure check before Thompson sampling
+
+- Checked whether the problem Thompson sampling fixes exists before building it. New startups are 67% of the board. Share of top-10 slots: most popular 0% (the same 15 startups for everyone), label similarity 72%, matrix factorisation 27%, hybrid 22%.
+- The starter is already fair, so Thompson sampling alone would add complexity for nothing. Denzel asked whether skipping pieces is right; the answer was to give it a real job instead: make the hybrid fair.
+- The exposure check is now reported for every model and should become a Phase 7 gate rule: a new starter must not starve new startups.
+
+## 2026-11-16 · Phase 5: Thompson sampling, simplified
+
+- Score = standardised base score + wobble, wobble ~ Normal(0, strength / sqrt(1 + deals)). Classic Thompson sampling needs live feedback, which we do not have; this keeps its idea (more uncertainty, more exploration) and is labelled as simplified in the code.
+- Strength grid and selection rule written before the run: on the practice split, among strengths where new startups get at least their board share, pick the best NDCG@10. Chosen: 0.25 (practice: 69% new share).
+- Results on the hidden test: NDCG@10 0.0215 (highest so far). Against the hybrid: real win on new startups (+0.0070), real loss on known (-0.0097). New startups' share 64%, different startups shown 2,869.
+- Pass marks 5 (fairness, 64% vs 67%) and 7 (beat label similarity, CI -0.0002 to +0.0094) failed. Recorded as strict expected-to-fail tests. **Not promoted.**
+- **Not tweaked after seeing the test:** a bigger strength might have reached 67%, but choosing it now would be test-peeking.
+
+## 2026-11-16 · Next: a multi-season scoreboard
+
+- Two near misses in a row (hybrid, Thompson sampling) show the scoreboard's limit: one test period with 828 investors can only prove gains above about 0.005.
+- Plan: repeat the test at several cutoffs (for example 2010, 2011, 2012), learning from everything before each and testing on the year after, then combine. More evidence, and it fixes the "one test period" limitation.
+- For a fair retrial, the models are frozen and the pass marks written before the run.

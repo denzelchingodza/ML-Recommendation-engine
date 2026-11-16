@@ -112,3 +112,21 @@ Newest session at the bottom. Read this first at the start of every session.
 - Phase 4 PR.
 - The full walkthrough from the beginning (Denzel's request), including cosine similarity, matrix factorisation and gradients. Probably as a guide PDF part 2.
 - Then Phase 5: Thompson sampling.
+
+**Phase 4 merged:** PR #13 into `staging` (79 passed, 3 expected failures on Python 3.12), PR #14 into `main`.
+
+**Walkthrough, option C (PDF, then chat)**
+- Delivered the maths guide Part 2 (14 pages, 11 diagrams): a one-page recap of Part 1, checklists (vectors), cosine similarity, the leak check, sliders (matrix factorisation), BPR, sigmoid and loss, gradients and gradient descent with one step by hand, the gradient check, the averaging bug, the practice split, the hybrid and z-scores, and why nothing was promoted.
+- Next: go through it together in chat, one small piece at a time.
+
+## 2026-11-16 · Session 5: Phase 5
+
+- Denzel gave the assistant's name a meaning: M.A.R.A. = Machine-learning Automation and Recommendation Agent (the recommendation engine plus the CI/CD for models).
+- Walkthrough of guide Part 2 postponed again by Denzel ("we'll do it later"). Still planned.
+- Denzel asked where PHP could fit. Answer: it does not earn a spot (Python backend, TypeScript frontend already cover it). Denzel let it pass.
+- Exposure check first: the starter is already fair to new startups, so Thompson sampling was given the job of fixing the hybrid instead (Denzel chose option B after asking whether skipping pieces is right).
+- Thompson sampling on the hybrid: highest NDCG so far (0.0215), new startups' share 22% to 64%, but two near misses. Not promoted, recorded.
+- Denzel asked if there was something better to do. Answer: strengthen the scoreboard with several test periods. Denzel agreed.
+
+**Next**
+- Phase 5 PR, then the multi-season scoreboard (Phase 5b).

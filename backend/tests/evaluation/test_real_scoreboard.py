@@ -43,7 +43,7 @@ def test_pass_mark_4_known_and_new_are_reported_separately(output):
 
 def test_pass_mark_5_same_seed_same_numbers(output):
     again = run()
-    for model in ("random", "most_popular", "label_similarity", "matrix_factorisation", "hybrid"):
+    for model in ("random", "most_popular", "label_similarity", "matrix_factorisation", "hybrid", "thompson_hybrid"):
         pd.testing.assert_frame_equal(
             output["results"][model]["per_investor"], again["results"][model]["per_investor"]
         )
@@ -187,3 +187,78 @@ def test_hybrid_pass_mark_3_not_clearly_worse_on_new_than_label_similarity(outpu
 def test_hybrid_pass_mark_4_not_clearly_worse_on_known_than_matrix_factorisation(output):
     diff = _hybrid_vs(output, "matrix_factorisation", "known")
     assert diff.high >= 0, f"CI {diff.low:.4f} to {diff.high:.4f}"
+
+
+# Phase 5 pass marks: Thompson sampling on the hybrid (written before the first run)
+
+
+def test_phase5_pass_mark_1_no_wobble_matches_the_hybrid_exactly(output):
+    from recommender.data.load_data import load_investments
+    from recommender.evaluation.draft_board import build_draft_board
+    from recommender.evaluation.scoreboard import score_model
+    from recommender.models.thompson import ThompsonRanker
+
+    dataset = output["dataset"]
+    board = build_draft_board(load_investments(), dataset.split_report.cutoff)
+    hybrid_per = output["results"]["hybrid"]["per_investor"]
+    no_wobble = ThompsonRanker(_RememberHybrid(output), 0.0).fit(dataset.train)
+    per = score_model(no_wobble, dataset, board)
+    assert list(per["top_k"]) == list(hybrid_per["top_k"])
+
+
+class _RememberHybrid:
+    """Reuses the fitted hybrid scores from the main run, so this test does not retrain."""
+
+    name = "hybrid"
+
+    def __init__(self, output):
+        from recommender.models.hybrid import HybridRanker
+        from recommender.models.label_similarity import LabelSimilarityRanker
+        from recommender.models.matrix_factorisation import MatrixFactorisationRanker
+
+        d = output["dataset"]
+        self.model = HybridRanker(MatrixFactorisationRanker(d.companies, **output["mf_settings"]),
+                                  LabelSimilarityRanker(d.companies), output["blend_weight"]).fit(d.train)
+
+    def fit(self, train):
+        return self
+
+    def score(self, i, investor, candidates):
+        return self.model.score(i, investor, candidates)
+
+
+def test_phase5_pass_mark_4_strength_chosen_on_the_practice_grid(output):
+    from recommender.evaluation.tuning import EXPLORATION_STRENGTHS
+
+    assert output["ts_strength"] in EXPLORATION_STRENGTHS
+    assert len(output["ts_tuning"]) == len(EXPLORATION_STRENGTHS)
+
+
+PHASE5_RECORDED = (
+    "Recorded result, 16 Nov 2026: Thompson sampling on the hybrid (strength 0.25, chosen on practice data) "
+    "gave new startups 64% of top-10 slots vs 67% of the board (practice data said 69%), and beat label "
+    "similarity by +0.0044 with CI -0.0002 to +0.0094. Two near misses, so not promoted."
+)
+
+
+@pytest.mark.xfail(strict=True, reason=PHASE5_RECORDED)
+def test_phase5_pass_mark_5_new_startups_get_their_fair_share(output):
+    ex = output["results"]["thompson_hybrid"]["exposure"]
+    assert ex["new_share_of_slots"] >= ex["new_share_of_board"], (
+        f"new startups got {ex['new_share_of_slots']:.0%} of slots vs {ex['new_share_of_board']:.0%} of the board")
+
+
+def _thompson_vs_labels(output):
+    return compare(output["results"]["label_similarity"]["per_investor"],
+                   output["results"]["thompson_hybrid"]["per_investor"], "ndcg", "overall")
+
+
+def test_phase5_pass_mark_6_not_clearly_worse_than_label_similarity(output):
+    diff = _thompson_vs_labels(output)
+    assert diff.high >= 0, f"clearly worse: CI {diff.low:.4f} to {diff.high:.4f}"
+
+
+@pytest.mark.xfail(strict=True, reason=PHASE5_RECORDED)
+def test_phase5_pass_mark_7_beats_label_similarity(output):
+    diff = _thompson_vs_labels(output)
+    assert diff.low > 0, f"CI {diff.low:.4f} to {diff.high:.4f}"

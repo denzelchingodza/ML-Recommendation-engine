@@ -47,10 +47,32 @@ def score_model(model, dataset, board: np.ndarray, k: int = DEFAULT_K, seed: int
             "known": hidden & known_companies,
             "new": hidden - known_companies,
         }
-        row = {"investor": investor, "n_candidates": len(candidates)}
+        top = ranked[:k]
+        row = {
+            "investor": investor,
+            "n_candidates": len(candidates),
+            "top_k": tuple(top),                                         # for the exposure check
+            "top_k_new": int(sum(c not in known_companies for c in top)),
+        }
         for segment, relevant in segment_sets.items():
             row[f"n_hidden_{segment}"] = len(relevant)
             for metric, func in (("recall", recall_at_k), ("ndcg", ndcg_at_k)):
                 row[f"{metric}_{segment}"] = func(ranked, relevant, k) if relevant else np.nan
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def exposure(per_investor: pd.DataFrame, board: np.ndarray, known_companies: set) -> dict:
+    """Who gets seen: share of top-k slots given to new startups, and how many different startups are shown.
+
+    A model that only ever shows a few famous startups is unfair to everyone else,
+    even when its accuracy looks fine.
+    """
+    slots = int(per_investor["top_k"].map(len).sum())
+    shown = set().union(*per_investor["top_k"]) if len(per_investor) else set()
+    return {
+        "new_share_of_slots": float(per_investor["top_k_new"].sum() / slots) if slots else float("nan"),
+        "new_share_of_board": float(np.mean([c not in known_companies for c in board])),
+        "distinct_shown": len(shown),
+        "board_size": len(board),
+    }

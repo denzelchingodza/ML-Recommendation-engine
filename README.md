@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 4 (matrix factorisation) done: no promotion, label similarity stays the starter. Next up: Phase 5 (fair chances). See the [roadmap](#roadmap).
+> **Status:** Phase 5 (fair chances) done: no promotion, label similarity stays the starter. Next up: a multi-season scoreboard. See the [roadmap](#roadmap).
 
 ---
 
@@ -79,6 +79,15 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
   - Overall 0.0203, the best on paper, but the paired CI against label similarity (-0.0016 to +0.0080) crosses zero, so the win is not proven. **Not promoted.**
 - Both stay in the code with their losses recorded as visible tests. This is the quality gate idea working: a model that looked better was blocked because its win was not proven.
 
+**Phase 5, fair chances (Thompson sampling):**
+
+- **Exposure check** (now reported for every model): the share of top-10 slots given to new startups, against their 67% share of the board, and how many different startups are ever shown.
+  - Most popular: 0%, and it shows the same 15 startups to everyone. Label similarity: 72%, 2,188 different startups. Matrix factorisation: 27%. Hybrid: 22%.
+- The starter is already fair, so Thompson sampling was given a real job: make the **hybrid** fair to new startups. A simplified version: a random wobble on each score, sized strength / sqrt(1 + deals), so less-known startups get bigger wobbles. Strength chosen on the practice split (0.25).
+- Result: NDCG@10 overall **0.0215**, the highest so far. New startups' share rose from 22% to **64%**, and different startups shown from 1,671 to 2,869.
+- Two near misses: 64% is just under the 67% fairness bar, and the win over label similarity (+0.0044, CI -0.0002 to +0.0094) is not proven. **Not promoted.**
+- **Lesson:** with one test period and 828 investors, the scoreboard can only prove gains above about 0.005. The next step strengthens the scoreboard itself.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -146,7 +155,8 @@ flowchart LR
 - [x] **2 · Scoreboard:** baselines, NDCG, recall, confidence intervals. *All 5 pass marks met.*
 - [x] **3 · Find candidates:** label vectors and cosine similarity. *All pass marks met, plus a shuffled-label leak check.*
 - [x] **4 · Rank:** matrix factorisation with hand-written gradients, plus a hybrid. *Neither proved a win over label similarity, so neither was promoted.*
-- [ ] **5 · Fair chances:** Thompson sampling.
+- [x] **5 · Fair chances:** exposure check, plus Thompson sampling on the hybrid. *Fairer and the highest score so far, but two near misses, so not promoted.*
+- [ ] **5b · Multi-season scoreboard:** test at several cutoffs to get enough evidence to prove smaller real gains.
 - [ ] **6 · Explain:** an honest "why" for each pick.
 - [ ] **7 · Quality gate:** PR gate, staging, tagged release.
 - [ ] **8 · Demo:** API and frontend page.
