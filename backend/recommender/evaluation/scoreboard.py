@@ -12,8 +12,8 @@ import pandas as pd
 from recommender.data.build_dataset import Dataset, build_dataset
 from recommender.data.load_data import load_investments
 from recommender.evaluation.draft_board import build_draft_board
-from recommender.evaluation.scoreboard_core import DEFAULT_K, rank_candidates, score_model  # noqa: F401 (re-exported)
-from recommender.evaluation.tuning import select_blend_weight, select_settings
+from recommender.evaluation.scoreboard_core import DEFAULT_K, exposure, rank_candidates, score_model  # noqa: F401 (re-exported)
+from recommender.evaluation.tuning import select_blend_weight, select_exploration, select_settings
 from recommender.maths.confidence_intervals import (
     ConfidenceInterval,
     bootstrap_mean_ci,
@@ -23,6 +23,7 @@ from recommender.models.baselines import MostPopularRanker, RandomRanker
 from recommender.models.label_similarity import LabelSimilarityRanker
 from recommender.models.hybrid import HybridRanker
 from recommender.models.matrix_factorisation import MatrixFactorisationRanker
+from recommender.models.thompson import ThompsonRanker
 
 SEGMENTS = ("overall", "known", "new")
 METRICS = ("recall", "ndcg")
@@ -33,6 +34,8 @@ COMPARISONS = (
     ("label_similarity", "matrix_factorisation"),
     ("label_similarity", "hybrid"),
     ("matrix_factorisation", "hybrid"),
+    ("label_similarity", "thompson_hybrid"),
+    ("hybrid", "thompson_hybrid"),
 )
 
 
@@ -73,6 +76,8 @@ def run(k: int = DEFAULT_K, seed: int = 0) -> dict:
     settings, tuning = select_settings(dataset.train, dataset.companies, dataset.split_report.cutoff, k=k, seed=seed)
     weight, blend_tuning = select_blend_weight(dataset.train, dataset.companies, dataset.split_report.cutoff,
                                                settings, k=k, seed=seed)
+    strength, ts_tuning, ts_fair = select_exploration(dataset.train, dataset.companies, dataset.split_report.cutoff,
+                                                      settings, weight, k=k, seed=seed)
     results = {}
     models = (
         RandomRanker(seed),
@@ -81,14 +86,18 @@ def run(k: int = DEFAULT_K, seed: int = 0) -> dict:
         MatrixFactorisationRanker(dataset.companies, seed=seed, **settings),
         HybridRanker(MatrixFactorisationRanker(dataset.companies, seed=seed, **settings),
                      LabelSimilarityRanker(dataset.companies), weight),
+        ThompsonRanker(HybridRanker(MatrixFactorisationRanker(dataset.companies, seed=seed, **settings),
+                                    LabelSimilarityRanker(dataset.companies), weight), strength, seed),
     )
     for model in models:
         model.fit(dataset.train)
         per_investor = score_model(model, dataset, board, k, seed)
-        results[model.name] = {"per_investor": per_investor, "summary": summarise(per_investor, seed=seed)}
+        results[model.name] = {"per_investor": per_investor, "summary": summarise(per_investor, seed=seed),
+                               "exposure": exposure(per_investor, board, set(dataset.train["company_permalink"]))}
     return {"board_size": len(board), "k": k, "dataset": dataset, "results": results,
             "mf_settings": settings, "mf_tuning": tuning, "mf_model": models[3],
-            "blend_weight": weight, "blend_tuning": blend_tuning}
+            "blend_weight": weight, "blend_tuning": blend_tuning,
+            "ts_strength": strength, "ts_tuning": ts_tuning, "ts_fair_found": ts_fair}
 
 
 def format_report(output: dict) -> str:
@@ -112,6 +121,21 @@ def format_report(output: dict) -> str:
         for settings, score in output["mf_tuning"]:
             mark = "  <- chosen" if settings == output["mf_settings"] else ""
             lines.append(f"  {settings}: practice ndcg@{k} {score:.4f}{mark}")
+    lines.append("")
+    lines.append("Exposure: share of top-10 slots given to new startups (board share in brackets), and different startups shown")
+    for name, result in results.items():
+        ex = result["exposure"]
+        lines.append(f"  {name:<22} {ex['new_share_of_slots']:.0%} ({ex['new_share_of_board']:.0%})   "
+                     f"{ex['distinct_shown']:,} of {ex['board_size']:,}")
+    if "ts_tuning" in output:
+        lines.append("")
+        lines.append("Thompson sampling strength on the hybrid, chosen on the practice split (fair = new share >= board share):")
+        for r in output["ts_tuning"]:
+            mark = "  <- chosen" if r["strength"] == output["ts_strength"] else ""
+            lines.append(f"  strength {r['strength']:<4} practice ndcg@{k} {r['ndcg']:.4f}, new share {r['new_share']:.0%}"
+                         f"{' fair' if r['fair'] else ''}{mark}")
+        if not output["ts_fair_found"]:
+            lines.append("  No strength met the fairness rule on practice data; the fairest was chosen.")
     if "blend_tuning" in output:
         lines.append("")
         lines.append("Hybrid weight on matrix factorisation (rest on label similarity), chosen on the practice split:")
