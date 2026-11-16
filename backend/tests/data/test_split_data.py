@@ -71,3 +71,26 @@ def test_missing_columns_are_named(pairs):
 def test_empty_test_set_fails_loudly_instead_of_scoring_nothing(pairs):
     with pytest.raises(SplitError, match="No test pairs left"):
         temporal_split(pairs, "2012-01-01", min_history=50)
+
+
+# Phase 5b: a test window that ends (written BEFORE the code)
+
+
+def test_window_end_keeps_only_deals_inside_the_window(pairs):
+    train, test, report = temporal_split(pairs, "2012-01-01", min_history=3, end="2012-03-01")
+    assert (train.first_invested_at < pd.Timestamp("2012-01-01")).all()
+    assert (test.first_invested_at >= pd.Timestamp("2012-01-01")).all()
+    assert (test.first_invested_at < pd.Timestamp("2012-03-01")).all()
+    assert set(test.company_permalink) == {"c4"}  # c9 (June) is after the window
+    assert report.end == "2012-03-01"
+
+
+def test_no_end_means_everything_after_the_cutoff(pairs):
+    _, test, report = temporal_split(pairs, "2012-01-01", min_history=3)
+    assert set(test.company_permalink) == {"c4", "c9"}
+    assert report.end is None
+
+
+def test_end_must_come_after_the_cutoff(pairs):
+    with pytest.raises(SplitError, match="end"):
+        temporal_split(pairs, "2012-01-01", min_history=3, end="2012-01-01")

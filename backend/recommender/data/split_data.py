@@ -3,6 +3,7 @@
 One cutoff date for everyone:
 - pairs first invested BEFORE the cutoff go to training
 - pairs first invested ON or AFTER the cutoff go to the hidden test set
+  (and, if an `end` is given, BEFORE the end: a test window, used by the seasons)
 
 This stops the model from learning anything that happened after the cutoff.
 A random split would let it peek at the future (leakage).
@@ -30,6 +31,7 @@ class SplitReport:
     test_pairs: int
     test_investors: int
     test_pairs_new_company: int
+    end: str | None = None
 
     @property
     def new_company_share(self) -> float:
@@ -41,6 +43,7 @@ def temporal_split(
     pairs: pd.DataFrame,
     cutoff: str = DEFAULT_CUTOFF,
     min_history: int = DEFAULT_MIN_HISTORY,
+    end: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, SplitReport]:
     """Split pairs at a single cutoff date.
 
@@ -61,9 +64,15 @@ def temporal_split(
             f"Cutoff {cutoff} must fall inside the data range ({earliest.date()} to {latest.date()})"
         )
 
+    if end is not None and pd.Timestamp(end) <= cutoff_date:
+        raise SplitError(f"Test window end {end} must come after the cutoff {cutoff}")
+
     is_train = pairs["first_invested_at"] < cutoff_date
+    in_test = ~is_train
+    if end is not None:
+        in_test &= pairs["first_invested_at"] < pd.Timestamp(end)
     train = pairs[is_train]
-    test_all = pairs[~is_train]
+    test_all = pairs[in_test]
 
     history = train.groupby("investor_permalink").size()
     eligible = set(history[history >= min_history].index)
@@ -92,5 +101,6 @@ def temporal_split(
         test_pairs=len(test),
         test_investors=test["investor_permalink"].nunique(),
         test_pairs_new_company=int(new_company.sum()),
+        end=end,
     )
     return train, test, report

@@ -34,3 +34,14 @@ def test_hidden_company_missing_from_board_fails_loudly():
     test = pd.DataFrame({"company_permalink": ["on_board", "missing"]})
     with pytest.raises(DraftBoardError, match="1 hidden test companies"):
         check_board_covers_test(np.array(["on_board"]), test)
+
+
+def test_board_with_an_end_only_has_companies_raising_inside_the_window():
+    # Written BEFORE the code (Phase 5b)
+    investments = pd.DataFrame(
+        {
+            "company_permalink": ["old", "both", "both", "late", "inside"],
+            "funded_at": ["2010-01-01", "2010-01-01", "2012-05-01", "2013-01-01", "2012-12-31"],
+        }
+    )
+    assert list(build_draft_board(investments, "2012-01-01", end="2013-01-01")) == ["both", "inside"]
