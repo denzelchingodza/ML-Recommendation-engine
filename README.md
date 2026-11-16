@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 5 (fair chances) done: no promotion, label similarity stays the starter. Next up: a multi-season scoreboard. See the [roadmap](#roadmap).
+> **Status:** Phase 5b (multi-season scoreboard) done: four seasons, still no proven winner, label similarity stays the starter. Next up: Phase 6, explaining each pick. See the [roadmap](#roadmap).
 
 ---
 
@@ -88,6 +88,15 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - Two near misses: 64% is just under the 67% fairness bar, and the win over label similarity (+0.0044, CI -0.0002 to +0.0094) is not proven. **Not promoted.**
 - **Lesson:** with one test period and 828 investors, the scoreboard can only prove gains above about 0.005. The next step strengthens the scoreboard itself.
 
+**Phase 5b, multi-season scoreboard (one game vs a playoff series):**
+
+- Four seasons, with cutoffs 1 Jan 2009, 2010, 2011 and 2012. Each season learns only from deals before its cutoff, is tested on the 12 months after it, and reruns the same tuning recipe on the year just before its cutoff. **The recipe is frozen, the practice year moves.**
+- 467 to 732 test investors per season, 2,346 investor-seasons in total. One investor can play in several seasons, so the combined interval resamples whole investors (a cluster bootstrap), not single rows. Otherwise the interval would look tighter than the evidence is.
+- The 2012 season overlaps the test we already looked at while choosing models, so the verdict is also given on the fresh seasons (2009 to 2011) alone.
+- **Result:** Thompson on the hybrid vs label similarity, NDCG@10 overall: **+0.0012** over all seasons (CI -0.0029 to +0.0053), **+0.0023** on the fresh seasons (CI -0.0028 to +0.0073). Could be luck. **Not promoted.** The +0.0044 edge from Phase 5 mostly shrank when replayed.
+- What held up across seasons: Thompson really beats the plain hybrid on new startups (+0.0084, real win) and really loses on known (-0.0119). Matrix factorisation alone really loses to label similarity overall (-0.0053). The tuning recipe picked strength 0.25 in every season.
+- **Lesson:** even four seasons only prove gains of about 0.004 or more here. Label similarity is a tough starter to beat, and the next real gains probably need new information (Version 2: company descriptions), not more tuning.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -121,7 +130,7 @@ ML-Recommendation-engine/
 │   │   ├── data/           Phase 1: load, clean, split
 │   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity, ranking loss, score scaling)
 │   │   ├── models/         uses the maths to make picks (baselines, label similarity, matrix factorisation, hybrid)
-│   │   ├── evaluation/     the referee: draft board, scoreboard, and tuning on a practice split
+│   │   ├── evaluation/     the referee: draft board, scoreboard, multi-season scoreboard, and tuning on a practice split
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
@@ -156,7 +165,7 @@ flowchart LR
 - [x] **3 · Find candidates:** label vectors and cosine similarity. *All pass marks met, plus a shuffled-label leak check.*
 - [x] **4 · Rank:** matrix factorisation with hand-written gradients, plus a hybrid. *Neither proved a win over label similarity, so neither was promoted.*
 - [x] **5 · Fair chances:** exposure check, plus Thompson sampling on the hybrid. *Fairer and the highest score so far, but two near misses, so not promoted.*
-- [ ] **5b · Multi-season scoreboard:** test at several cutoffs to get enough evidence to prove smaller real gains.
+- [x] **5b · Multi-season scoreboard:** four seasons, combined with a cluster bootstrap. *Pass marks for leaks, season size and repeatability met; Thompson's edge over label similarity not proven, so not promoted.*
 - [ ] **6 · Explain:** an honest "why" for each pick.
 - [ ] **7 · Quality gate:** PR gate, staging, tagged release.
 - [ ] **8 · Demo:** API and frontend page.
@@ -180,6 +189,9 @@ python -m recommender.data.build_dataset
 
 # Print the scoreboard for every model
 python -m recommender.evaluation.scoreboard
+
+# Print the multi-season scoreboard (four seasons, about 2 to 3 minutes)
+python -m recommender.evaluation.seasons
 ```
 
 ---

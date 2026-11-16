@@ -7,6 +7,9 @@ final score would be quietly inflated. So we split the training years again:
 and choose the settings that score best there.
 
 The grid was written down before the first run.
+
+Phase 5b: each season passes its own `practice_cutoff` (the year before its
+cutoff). The recipe is frozen; the practice year moves with the season.
 """
 
 from types import SimpleNamespace
@@ -31,18 +34,20 @@ class TuningError(Exception):
     """Raised when tuning could see data it must not see."""
 
 
-def practice_split(train: pd.DataFrame, must_end_before: str):
+def practice_split(train: pd.DataFrame, must_end_before: str, practice_cutoff: str = PRACTICE_CUTOFF):
+    if pd.Timestamp(practice_cutoff) >= pd.Timestamp(must_end_before):
+        raise TuningError(f"The practice cutoff {practice_cutoff} must come before the real cutoff {must_end_before}")
     if (train["first_invested_at"] >= pd.Timestamp(must_end_before)).any():
         raise TuningError(f"Tuning data contains deals on or after {must_end_before}: that is the hidden test")
-    p_train, p_test, _ = temporal_split(train, PRACTICE_CUTOFF, min_history=5)
-    board = np.array(sorted(set(train.loc[train["first_invested_at"] >= pd.Timestamp(PRACTICE_CUTOFF), "company_permalink"])))
+    p_train, p_test, _ = temporal_split(train, practice_cutoff, min_history=5)
+    board = np.array(sorted(set(train.loc[train["first_invested_at"] >= pd.Timestamp(practice_cutoff), "company_permalink"])))
     return SimpleNamespace(train=p_train, test=p_test), board
 
 
 def select_settings(train: pd.DataFrame, companies: pd.DataFrame, must_end_before: str,
-                    grid=GRID, k: int = 10, seed: int = 0):
+                    grid=GRID, k: int = 10, seed: int = 0, practice_cutoff: str = PRACTICE_CUTOFF):
     """Return the best settings by mean practice NDCG@k, plus every setting's score."""
-    practice, board = practice_split(train, must_end_before)
+    practice, board = practice_split(train, must_end_before, practice_cutoff)
     results = []
     for settings in grid:
         model = MatrixFactorisationRanker(companies, seed=seed, **settings).fit(practice.train)
@@ -68,9 +73,10 @@ class _RememberScores:
 
 
 def select_blend_weight(train: pd.DataFrame, companies: pd.DataFrame, must_end_before: str,
-                        mf_settings: dict, weights=BLEND_WEIGHTS, k: int = 10, seed: int = 0):
+                        mf_settings: dict, weights=BLEND_WEIGHTS, k: int = 10, seed: int = 0,
+                        practice_cutoff: str = PRACTICE_CUTOFF):
     """Weight on matrix factorisation (1 - weight on label similarity), chosen on the practice split."""
-    practice, board = practice_split(train, must_end_before)
+    practice, board = practice_split(train, must_end_before, practice_cutoff)
     mf = _RememberScores(MatrixFactorisationRanker(companies, seed=seed, **mf_settings).fit(practice.train))
     labels = _RememberScores(LabelSimilarityRanker(companies).fit(practice.train))
     results = []
@@ -83,14 +89,14 @@ def select_blend_weight(train: pd.DataFrame, companies: pd.DataFrame, must_end_b
 
 def select_exploration(train: pd.DataFrame, companies: pd.DataFrame, must_end_before: str,
                        mf_settings: dict, blend_weight: float, strengths=EXPLORATION_STRENGTHS,
-                       k: int = 10, seed: int = 0):
+                       k: int = 10, seed: int = 0, practice_cutoff: str = PRACTICE_CUTOFF):
     """Wobble strength for Thompson sampling on the hybrid, chosen on the practice split.
 
     Rule (written before the first run): among strengths where new startups get at
     least their share of the practice board, pick the best practice NDCG@k. If no
     strength is fair, pick the fairest one and report that the rule could not be met.
     """
-    practice, board = practice_split(train, must_end_before)
+    practice, board = practice_split(train, must_end_before, practice_cutoff)
     known = set(practice.train["company_permalink"])
     hybrid = _RememberScores(HybridRanker(
         MatrixFactorisationRanker(companies, seed=seed, **mf_settings),

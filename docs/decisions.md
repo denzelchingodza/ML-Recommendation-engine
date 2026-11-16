@@ -162,3 +162,14 @@ Why we chose what we chose. Newest at the bottom.
 - Two near misses in a row (hybrid, Thompson sampling) show the scoreboard's limit: one test period with 828 investors can only prove gains above about 0.005.
 - Plan: repeat the test at several cutoffs (for example 2010, 2011, 2012), learning from everything before each and testing on the year after, then combine. More evidence, and it fixes the "one test period" limitation.
 - For a fair retrial, the models are frozen and the pass marks written before the run.
+
+## 2026-11-16 · Phase 5b: multi-season scoreboard
+
+- **Seasons:** cutoffs 1 Jan 2009, 2010, 2011, 2012, each tested on the 12 months after it. Data ends Oct 2013, so 2013 cannot be a full season. 2009 was added after a count showed it has 467 test investors (pass mark: at least 300). Denzel chose four seasons over three.
+- **Tuning per season (Denzel's choice):** the old practice year (2011) is the 2011 season's test year, so reusing those settings would let the 2011 season see its own answers. Each season reruns the same recipe (same grids, same rules) on the year before its cutoff. Practice cutoff is now a parameter of tuning; the main scoreboard still uses 2011.
+- **Combining:** paired per-investor differences from every season, with a cluster bootstrap that resamples whole investors. Checked by tests: with one row per investor it equals the plain bootstrap, and copying every row does not tighten the interval (the plain bootstrap gets fooled by that).
+- **Honesty note:** the 2012 season overlaps the test already seen while choosing models, so the verdict is also reported on 2009 to 2011 alone.
+- **Pass marks, written before the run:** 1 no leaks, 2 at least 300 test investors per season, 3 same seed same numbers, 4a Thompson on the hybrid beats label similarity over all seasons, 4b same on the fresh seasons, 5 whole CI run under 12 minutes.
+- **Result:** 1, 2 and 3 met. 4a failed (+0.0012, CI -0.0029 to +0.0053) and 4b failed (+0.0023, CI -0.0028 to +0.0073). Recorded as strict expected-to-fail tests. **Not promoted:** label similarity stays the starter.
+- The Phase 5 edge (+0.0044 on one test period) mostly shrank when replayed over four seasons. That is the reason for building a series: one good game can be luck.
+- Run note: the full real-data suite is about 5 minutes locally (seasons about 2.5 of that).
