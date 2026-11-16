@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 5b (multi-season scoreboard) done: four seasons, still no proven winner, label similarity stays the starter. Next up: Phase 6, explaining each pick. See the [roadmap](#roadmap).
+> **Status:** Phase 6 (explain each pick) done: every pick of the starter gets an exact, checked reason. Next up: Phase 7, the quality gate. See the [roadmap](#roadmap).
 
 ---
 
@@ -97,6 +97,13 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - What held up across seasons: Thompson really beats the plain hybrid on new startups (+0.0084, real win) and really loses on known (-0.0119). Matrix factorisation alone really loses to label similarity overall (-0.0053). The tuning recipe picked strength 0.25 in every season.
 - **Lesson:** even four seasons only prove gains of about 0.004 or more here. Label similarity is a tough starter to beat, and the next real gains probably need new information (Version 2: company descriptions), not more tuning.
 
+**Phase 6, explain each pick:**
+
+- Only the starter (label similarity) is explained, because it is the only model a user would see. A startup has at most two labels, so its score splits **exactly** into a category part and a state part, like a box score: the parts must add up to the total.
+- Example: *"Web startup in CA. Matches your CA deals (7, e.g. BookTour, Cirtas Systems) and your web deals (5, e.g. Amie Street, Bill Me Later). CA counts for about 58% of the match."*
+- Checked on all 8,280 top-10 picks (828 investors): the parts add up to the model's score (biggest error 1e-16), every cited company is a real past deal from before the cutoff that shares the label, and the biggest reason comes first. None of the picks needed the "shown by chance" label.
+- **Finding:** startups missing a label (usually the category) are 2% of the board but **36% of the picks**. With one tick instead of two, their checklist is shorter, so a single match is not diluted and scores high (for example 0.909 for a CA-only startup shown to a CA-heavy investor). The explanations made this bias visible. It is not fixed here: changing the starter needs its own pass marks and a scoreboard run.
+
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -131,6 +138,7 @@ ML-Recommendation-engine/
 │   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity, ranking loss, score scaling)
 │   │   ├── models/         uses the maths to make picks (baselines, label similarity, matrix factorisation, hybrid)
 │   │   ├── evaluation/     the referee: draft board, scoreboard, multi-season scoreboard, and tuning on a practice split
+│   │   ├── explain/        Phase 6: an exact "why" for each pick of the starter
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
@@ -166,7 +174,7 @@ flowchart LR
 - [x] **4 · Rank:** matrix factorisation with hand-written gradients, plus a hybrid. *Neither proved a win over label similarity, so neither was promoted.*
 - [x] **5 · Fair chances:** exposure check, plus Thompson sampling on the hybrid. *Fairer and the highest score so far, but two near misses, so not promoted.*
 - [x] **5b · Multi-season scoreboard:** four seasons, combined with a cluster bootstrap. *Pass marks for leaks, season size and repeatability met; Thompson's edge over label similarity not proven, so not promoted.*
-- [ ] **6 · Explain:** an honest "why" for each pick.
+- [x] **6 · Explain:** an honest "why" for each pick. *All 5 pass marks met; found that startups missing a label are over-picked (2% of the board, 36% of picks).*
 - [ ] **7 · Quality gate:** PR gate, staging, tagged release.
 - [ ] **8 · Demo:** API and frontend page.
 - [ ] **9 · Version 2:** company descriptions, TF-IDF and embeddings.
@@ -192,6 +200,9 @@ python -m recommender.evaluation.scoreboard
 
 # Print the multi-season scoreboard (four seasons, about 2 to 3 minutes)
 python -m recommender.evaluation.seasons
+
+# Explain every top-10 pick of the starter, with checks and three examples
+python -m recommender.explain.report
 ```
 
 ---
