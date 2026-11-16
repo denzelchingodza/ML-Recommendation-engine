@@ -143,3 +143,17 @@ Newest session at the bottom. Read this first at the start of every session.
 **Next**
 - Phase 5b PR (`feature/phase-5b-multi-season` into `staging`), then promote to `main`.
 - Then Phase 6 (explain each pick), or the postponed walkthrough of guide Part 2.
+
+**Phase 5b merged:** PR #17 into `staging` (112 passed, 7 expected failures in 6 minutes on CI), PR #18 into `main`.
+
+**Phase 6 · Explain each pick (same session)**
+- Started the guide Part 2 walkthrough (cosine similarity worked example), then Denzel chose to finish the build first and do the maths step by step afterwards.
+- Plan agreed: explain only the starter, exactly (category part + state part = score).
+- Built `explain/label_explanations.py` and `explain/report.py`. All 5 pass marks met on 8,280 real picks.
+- Finding: startups missing a label are 2% of the board but 36% of the picks. Logged, not fixed in this phase.
+- 127 passed, 7 expected failures locally.
+
+**Next**
+- Phase 6 PR (`feature/phase-6-explain-picks` into `staging`), then promote to `main`.
+- Decide: test a fix for the missing-label bias, or go on to Phase 7 (quality gate).
+- After the build: the maths walkthrough, step by step (Denzel's request).

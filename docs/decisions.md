@@ -173,3 +173,14 @@ Why we chose what we chose. Newest at the bottom.
 - **Result:** 1, 2 and 3 met. 4a failed (+0.0012, CI -0.0029 to +0.0053) and 4b failed (+0.0023, CI -0.0028 to +0.0073). Recorded as strict expected-to-fail tests. **Not promoted:** label similarity stays the starter.
 - The Phase 5 edge (+0.0044 on one test period) mostly shrank when replayed over four seasons. That is the reason for building a series: one good game can be luck.
 - Run note: the full real-data suite is about 5 minutes locally (seasons about 2.5 of that).
+
+## 2026-11-16 · Phase 6: explain each pick
+
+- **Scope:** only the starter (label similarity) is explained. The bench models never reach a user, and their scores come from hidden profiles that cannot be split honestly; any "why" for them would be a guess. A promoted model gets its own explainer then.
+- **Method:** a startup has at most two ticks, so cosine similarity splits exactly: part(label) = profile[label] / (|profile| x |startup|). The explanation is the score taken apart, not a story written afterwards (faithful, not just plausible).
+- Evidence shown: how many past deals share each label, with up to two examples by name. Junk names (blank or Excel's "#NAME?") fall back to the web address.
+- A pick sharing no label would be labelled "shown by chance", never given a made-up reason.
+- **Pass marks, written before the run:** 1 parts add up to the score, 2 no invented evidence, 3 nothing from the test period cited, 4 every top-10 pick explained, 5 biggest reason first. **All met** on 8,280 picks (biggest add-up error 1.1e-16). Zero picks were shown by chance.
+- **Not checked:** whether a real investor finds the explanations convincing. That needs people, out of scope for now.
+- **Finding:** startups missing a label are 2% of the board but 36% of the picks. A one-tick checklist is shorter (length 1 instead of about 1.41), so one match is not diluted. Possible fixes for later (each needs its own pass marks and a scoreboard run): give a missing label its own "unknown" tick, or always divide by the full two-label length.
+- Test setup slip, fixed before any code changed: a hand-made test investor had no software deals, so the test could not see the line it checked.
