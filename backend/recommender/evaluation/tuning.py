@@ -15,14 +15,16 @@ import numpy as np
 import pandas as pd
 
 from recommender.data.split_data import temporal_split
-from recommender.evaluation.scoreboard_core import score_model
+from recommender.evaluation.scoreboard_core import exposure, score_model
 from recommender.models.hybrid import HybridRanker
 from recommender.models.label_similarity import LabelSimilarityRanker
 from recommender.models.matrix_factorisation import MatrixFactorisationRanker
+from recommender.models.thompson import ThompsonRanker
 
 PRACTICE_CUTOFF = "2011-01-01"
 GRID = tuple({"dim": d, "reg": r} for d in (16, 32) for r in (0.01, 0.001))
 BLEND_WEIGHTS = tuple(round(w / 10, 1) for w in range(11))  # 0.0, 0.1, ... 1.0
+EXPLORATION_STRENGTHS = (0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0)
 
 
 class TuningError(Exception):
@@ -77,3 +79,30 @@ def select_blend_weight(train: pd.DataFrame, companies: pd.DataFrame, must_end_b
         results.append((w, float(per["ndcg_overall"].mean())))
     best = max(results, key=lambda r: r[1])[0]
     return best, results
+
+
+def select_exploration(train: pd.DataFrame, companies: pd.DataFrame, must_end_before: str,
+                       mf_settings: dict, blend_weight: float, strengths=EXPLORATION_STRENGTHS,
+                       k: int = 10, seed: int = 0):
+    """Wobble strength for Thompson sampling on the hybrid, chosen on the practice split.
+
+    Rule (written before the first run): among strengths where new startups get at
+    least their share of the practice board, pick the best practice NDCG@k. If no
+    strength is fair, pick the fairest one and report that the rule could not be met.
+    """
+    practice, board = practice_split(train, must_end_before)
+    known = set(practice.train["company_permalink"])
+    hybrid = _RememberScores(HybridRanker(
+        MatrixFactorisationRanker(companies, seed=seed, **mf_settings),
+        LabelSimilarityRanker(companies), blend_weight).fit(practice.train))
+    results = []
+    for s in strengths:
+        model = ThompsonRanker(hybrid, s, seed).fit(practice.train)
+        per = score_model(model, practice, board, k, seed)
+        ex = exposure(per, board, known)
+        results.append({"strength": s, "ndcg": float(per["ndcg_overall"].mean()),
+                        "new_share": ex["new_share_of_slots"], "fair": ex["new_share_of_slots"] >= ex["new_share_of_board"],
+                        "board_new_share": ex["new_share_of_board"]})
+    fair = [r for r in results if r["fair"]]
+    chosen = max(fair, key=lambda r: r["ndcg"]) if fair else max(results, key=lambda r: r["new_share"])
+    return chosen["strength"], results, bool(fair)
