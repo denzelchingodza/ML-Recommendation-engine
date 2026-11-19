@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from recommender.api.service import MAX_K, RecommendationService, UnknownInvestor
+from recommender.api.service import MAX_K, NotEnoughHistory, RecommendationService, UnknownInvestor
 
 log = logging.getLogger("recommender.api")
 
@@ -50,15 +50,30 @@ def create_app(service: RecommendationService | None = None) -> FastAPI:
                   limit: int = Query(20, ge=1, le=100)):
         return {"investors": request.app.state.service.search(search, limit)}
 
+    def unknown(investor: str) -> HTTPException:
+        return HTTPException(status_code=404, detail=(
+            f"No investor {investor!r} with any investments before the cutoff. "
+            "Use /investors?search=... to find a valid id."))
+
+    @app.get("/investor")
+    def investor_profile(request: Request, investor: str = Query(..., min_length=1, max_length=200)):
+        try:
+            return request.app.state.service.profile(investor)
+        except UnknownInvestor:
+            raise unknown(investor)
+
     @app.get("/picks")
     def picks(request: Request, investor: str = Query(..., min_length=1, max_length=200),
               k: int = Query(10, ge=1, le=MAX_K)):
         try:
             return request.app.state.service.picks(investor, k)
         except UnknownInvestor:
-            raise HTTPException(status_code=404, detail=(
-                f"No investor {investor!r} with at least 5 past deals before the cutoff. "
-                "Use /investors?search=... to find a valid id."))
+            raise unknown(investor)
+        except NotEnoughHistory as e:
+            raise HTTPException(status_code=422, detail={
+                "code": "not_enough_history", "past_deals": e.past_deals, "needed": e.needed,
+                "message": (f"We need at least {e.needed} investments before the cutoff to learn an investor's habits. "
+                            f"This one has {e.past_deals}.")})
 
     return app
 

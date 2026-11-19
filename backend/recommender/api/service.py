@@ -10,6 +10,7 @@ scoreboard, so the API can never drift from what the gate judged.
 """
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,7 @@ from recommender.data.load_data import load_investments
 from recommender.data.split_data import DEFAULT_MIN_HISTORY
 from recommender.evaluation.draft_board import build_draft_board
 from recommender.evaluation.scoreboard_core import rank_candidates
+from recommender.api.places import readable
 from recommender.explain.label_explanations import LabelExplainer
 from recommender.models.label_similarity import LabelSimilarityFullRanker, LabelSimilarityRanker
 
@@ -28,7 +30,27 @@ MAX_K = 50
 
 
 class UnknownInvestor(KeyError):
-    """No investor with this id has enough history to get picks."""
+    """No investor with this id made any investment before the cutoff."""
+
+
+class NotEnoughHistory(ValueError):
+    """The investor exists but has too few past investments to learn their habits from."""
+
+    def __init__(self, investor: str, past_deals: int):
+        super().__init__(investor)
+        self.investor, self.past_deals, self.needed = investor, past_deals, DEFAULT_MIN_HISTORY
+
+
+def match_state(labels_on_record: int, shared: int, by_chance: bool) -> str:
+    """The plain state a page shows instead of a score.
+
+    close    : the startup has both labels on record and shares both with the investor's past
+    partial  : it has both on record but shares only one
+    possible : it is missing a label on record (so it cannot be fully checked), or shares nothing
+    """
+    if by_chance or shared == 0 or labels_on_record < 2:
+        return "possible"
+    return "close" if shared >= 2 else "partial"
 
 
 def read_champion(path: Path) -> dict:
@@ -54,7 +76,10 @@ class RecommendationService:
         self.explainer = LabelExplainer(self.model, train, self.dataset.companies)
 
         history = train.groupby("investor_permalink")["company_permalink"].apply(set)
-        self.seen = history[history.map(len) >= DEFAULT_MIN_HISTORY].to_dict()
+        self.history = history.to_dict()                                     # everyone with any past investment
+        self.seen = history[history.map(len) >= DEFAULT_MIN_HISTORY].to_dict()  # enough to learn habits from
+        labels = self.dataset.companies.set_index("permalink")[["category_code", "state_code"]]
+        self.labels = {c: {k: v for k, v in row.items() if isinstance(v, str)} for c, row in labels.iterrows()}
         self.later = self.dataset.test.groupby("investor_permalink")["company_permalink"].apply(set).to_dict()
         # Same tie-break order as the scoreboard: test investors first, in sorted order
         test_order = sorted(self.later)
@@ -65,31 +90,61 @@ class RecommendationService:
 
     def search(self, text: str, limit: int) -> list[dict]:
         text = text.strip().lower()
-        hits = [inv for inv in sorted(self.seen)
+        hits = [inv for inv in sorted(self.history)
                 if not text or text in inv.lower() or text in self.names.get(inv, "").lower()]
-        hits.sort(key=lambda inv: -len(self.seen[inv]))  # busiest investors first
-        return [{"id": inv, "name": self.names.get(inv, inv), "past_deals": len(self.seen[inv])} for inv in hits[:limit]]
+        hits.sort(key=lambda inv: -len(self.history[inv]))  # busiest investors first
+        return [{"id": inv, "name": self.names.get(inv, inv), "past_deals": len(self.history[inv]),
+                 "enough_history": inv in self.seen} for inv in hits[:limit]]
+
+    def _check(self, investor: str) -> None:
+        if investor not in self.history:
+            raise UnknownInvestor(investor)
+        if investor not in self.seen:
+            raise NotEnoughHistory(investor, len(self.history[investor]))
+
+    def profile(self, investor: str) -> dict:
+        """The investor's habits in plain terms, for the Overview tab. Answers even with too little history."""
+        if investor not in self.history:
+            raise UnknownInvestor(investor)
+        past = self.history[investor]
+        states = Counter(self.labels.get(c, {}).get("state_code") for c in past)
+        sectors = Counter(self.labels.get(c, {}).get("category_code") for c in past)
+        states.pop(None, None), sectors.pop(None, None)
+        top = lambda counts: min(counts.items(), key=lambda kv: (-kv[1], kv[0])) if counts else None  # noqa: E731
+        st, sec = top(states), top(sectors)
+        later = self.later.get(investor)
+        return {"id": investor, "name": self.names.get(investor, investor), "past_deals": len(past),
+                "enough_history": investor in self.seen, "needed": DEFAULT_MIN_HISTORY,
+                "cutoff": self.dataset.split_report.cutoff,
+                "top_state": {"code": st[0], "name": readable("state", st[0]), "count": st[1]} if st else None,
+                "top_sector": {"name": readable("category", sec[0]), "count": sec[1]} if sec else None,
+                "later_investments": len(later) if later is not None else None}
 
     def picks(self, investor: str, k: int) -> dict:
-        if investor not in self.seen:
-            raise UnknownInvestor(investor)
+        self._check(investor)
         seen = self.seen[investor]
         candidates = self.board[~np.isin(self.board, list(seen))]
         index = self.index[investor]
         scores = self.model.score(index, investor, candidates)
         ranked = rank_candidates(candidates, scores, np.random.default_rng([self.seed, index]))[:k]
+        score_of = dict(zip(candidates, scores))
         later = self.later.get(investor)
         out = []
         for company in ranked:
             e = self.explainer.explain(investor, company)
+            on_record = len(self.labels.get(company, {}))
             out.append({
                 "company": company,
                 "name": self.explainer._show(company),
                 "score": e.score,
                 "why": e.text,
                 "by_chance": e.by_chance,
-                "reasons": [{"label": r.column.removesuffix("_code"), "value": r.value, "part": r.part,
-                             "past_deals": r.past_deals, "examples": list(r.examples)} for r in e.reasons],
+                "match": match_state(on_record, len(e.reasons), e.by_chance),
+                "equally_strong": int(np.isclose(scores, score_of[company], rtol=0, atol=1e-12).sum()),
+                "reasons": [{"label": r.column.removesuffix("_code"), "value": r.value,
+                             "value_name": readable(r.column.removesuffix("_code"), r.value), "part": r.part,
+                             "past_deals": r.past_deals, "examples": list(r.examples),
+                             "example_names": [self.explainer._show(c) for c in r.examples]} for r in e.reasons],
                 "backed_later": bool(later and company in later),
             })
         return {"investor": investor, "name": self.names.get(investor, investor), "past_deals": len(seen),

@@ -216,3 +216,14 @@ Why we chose what we chose. Newest at the bottom.
 - Known warning: Starlette now prefers a newer test client than httpx. Harmless today; revisit if it breaks.
 - Slip fixed: the Phase 7b README edit had dropped the line "Pass marks are written down before each run..."; restored here.
 - Pass marks 1 to 5 all met. 174 passed, 1 skipped, 7 expected failures locally.
+
+## 2026-11-19 · Phase 8b: the demo page (Scout Desk)
+
+- **Design rules from Denzel** (the thinking behind a Funema team page, used as principles only, none of its colours, fonts or wording): hide the maths and show the meaning; every claim shows its why; uncertainty is a real state; an app, not a long page; one accent colour for one job; words from the user's side; a quality floor (4.5:1 contrast, 44px targets, keyboard, phone).
+- **Challenges raised before building:** our data has no stage and no Africa (US startups, sector and state, up to 2012), so evidence can only be "same sector", "same state" and "like these past investments". "Strong fit" was replaced by plain words, because the model measures resemblance to past investments, not how likely an investor is to invest.
+- **Prototype first:** Denzel asked to see it before any branch existed. Built from real API answers outside the repo, screenshotted and critiqued in rounds. When Denzel said he did not understand it, the words were simplified (one sentence per screen, "investments" not "deals", "They invested" not "Backed later", detail moved behind "How we worked this out") and he approved that version.
+- **Palette:** paper #F3F5F2, panel #FFFFFF, ink #1B201B, quiet #566056, line #D7DDD5, one accent (field olive #465724) used only for the main button, the key result line and keyboard focus. A test checks the accent is used nowhere else. **Type:** Barlow Semi Condensed 600 for headings and states, Public Sans for text, both OFL-1.1 and bundled locally (no font server).
+- **Stack:** Vite + plain TypeScript, Vitest + jsdom (all MIT), TypeScript 5 (Apache-2.0; pinned instead of the brand-new 7). In development Vite passes /api calls to the Python API, so no cross-origin requests.
+- **Pass marks, written before building:** 1 strict TypeScript; 2 faithful to the API; 3 every failure handled with a next step; 4 works end to end on the real API; 5 usable (keyboard, 44px, contrast, phone); 6 a frontend CI job. **All met.**
+- **Bugs caught by the checks:** "Try again" after a failed search went back to Overview instead of retrying (fixed: the page remembers the last action); the search box shrank below 44px on the start screen when the list was long (fixed, and now measured on the start screen too).
+- The end-to-end browser run happens in MARA's workspace (the browser in the Claude app cannot reach servers in the Mac's shell); it is not in CI yet.

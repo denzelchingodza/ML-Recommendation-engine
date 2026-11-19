@@ -1,0 +1,11 @@
+{
+ "status": 422,
+ "body": {
+  "detail": {
+   "code": "not_enough_history",
+   "past_deals": 3,
+   "needed": 5,
+   "message": "We need at least 5 investments before the cutoff to learn an investor's habits. This one has 3."
+  }
+ }
+}
