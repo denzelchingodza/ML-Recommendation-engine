@@ -47,3 +47,39 @@ def test_scoring_before_fit_or_for_unknown_investor_fails_loudly():
     model.fit(pd.DataFrame({"investor_permalink": ["inv"], "company_permalink": ["sw_ca"]}))
     with pytest.raises(KeyError, match="No training history"):
         model.score(0, "stranger", np.array(["sw_ca"]))
+
+
+# Challenger: label_similarity_full (a missing label counts as a non-match). Written BEFORE the code.
+
+from recommender.models.label_similarity import LabelSimilarityFullRanker  # noqa: E402
+
+
+def _both():
+    train = pd.DataFrame({"investor_permalink": ["inv"] * 3, "company_permalink": ["sw_ca", "sw_ca", "sw_ny"]})
+    return LabelSimilarityRanker(COMPANIES).fit(train), LabelSimilarityFullRanker(COMPANIES).fit(train)
+
+
+def test_challenger_pass_mark_1_fully_labelled_startups_score_exactly_the_same():
+    old, new = _both()
+    candidates = np.array(["sw_ca", "sw_ny", "bio_ca", "bio_ny"])
+    assert np.array_equal(old.score(0, "inv", candidates), new.score(0, "inv", candidates))
+
+
+def test_challenger_pass_mark_1_one_missing_label_divides_by_root_two():
+    companies = pd.concat([COMPANIES, pd.DataFrame({"permalink": ["sw_only"], "category_code": ["software"],
+                                                     "state_code": [None]})], ignore_index=True)
+    train = pd.DataFrame({"investor_permalink": ["inv"] * 2, "company_permalink": ["sw_ca", "sw_ny"]})
+    old = LabelSimilarityRanker(companies).fit(train).score(0, "inv", np.array(["sw_only"]))[0]
+    new = LabelSimilarityFullRanker(companies).fit(train).score(0, "inv", np.array(["sw_only"]))[0]
+    assert new == pytest.approx(old / np.sqrt(2), abs=1e-15)
+    assert new < old
+
+
+def test_challenger_no_labels_still_scores_zero():
+    _, new = _both()
+    assert list(new.score(0, "inv", np.array(["no_labels", "not_in_table"]))) == [0.0, 0.0]
+
+
+def test_challenger_has_its_own_name():
+    _, new = _both()
+    assert new.name == "label_similarity_full"

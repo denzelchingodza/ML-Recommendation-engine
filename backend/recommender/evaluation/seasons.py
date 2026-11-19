@@ -31,14 +31,15 @@ from recommender.evaluation.tuning import select_blend_weight, select_exploratio
 from recommender.maths.confidence_intervals import ConfidenceInterval, cluster_bootstrap_mean_ci
 from recommender.models.baselines import MostPopularRanker, RandomRanker
 from recommender.models.hybrid import HybridRanker
-from recommender.models.label_similarity import LabelSimilarityRanker
+from recommender.models.label_similarity import LabelSimilarityFullRanker, LabelSimilarityRanker
 from recommender.models.matrix_factorisation import MatrixFactorisationRanker
 from recommender.models.thompson import ThompsonRanker
 
 SEASON_CUTOFFS = ("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01")
 FRESH_SEASONS = SEASON_CUTOFFS[:3]  # never looked at while choosing models
 SEGMENTS = ("overall", "known", "new")
-MODEL_NAMES = ("random", "most_popular", "label_similarity", "matrix_factorisation", "hybrid", "thompson_hybrid")
+MODEL_NAMES = ("random", "most_popular", "label_similarity", "matrix_factorisation", "hybrid", "thompson_hybrid",
+               "label_similarity_full")
 COMPARISONS = (
     ("random", "most_popular"),
     ("label_similarity", "matrix_factorisation"),
@@ -99,6 +100,7 @@ def run_season(cutoff: str, k: int = DEFAULT_K, seed: int = 0) -> dict:
         MatrixFactorisationRanker(companies, seed=seed, **settings),
         hybrid(),
         ThompsonRanker(hybrid(), strength, seed),
+        LabelSimilarityFullRanker(companies),
     )
     if tuple(m.name for m in models) != MODEL_NAMES:
         raise RuntimeError("MODEL_NAMES is out of date with the models scored in a season")

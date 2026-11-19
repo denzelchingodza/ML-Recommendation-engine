@@ -6,9 +6,10 @@ import pytest
 from recommender.explain.report import run
 
 
-@pytest.fixture(scope="module")
-def output():
-    return run()
+@pytest.fixture(scope="module", params=["label_similarity", "label_similarity_full"])
+def output(request):
+    """The five Phase 6 checks run for the champion AND the challenger (gate rule 3)."""
+    return run(model_name=request.param)
 
 
 def test_pass_mark_1_parts_add_up_to_the_model_score(output):
@@ -54,3 +55,11 @@ def test_pass_mark_5_biggest_reason_first(output):
     for _, e in output["explanations"]:
         parts = [r.part for r in e.reasons]
         assert parts == sorted(parts, reverse=True)
+
+
+def test_challenger_pass_mark_2_missing_label_picks_fall_below_10_percent(output):
+    """Written BEFORE the first run. The champion sits at 36%; the fix must bring it under 10%."""
+    if output["model_name"] != "label_similarity_full":
+        pytest.skip("pass mark 2 is about the challenger")
+    share = output["missing_label_picks"] / output["picks"]
+    assert share < 0.10, f"{share:.1%} of picks are startups missing a label"

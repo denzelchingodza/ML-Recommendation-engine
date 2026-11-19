@@ -172,3 +172,16 @@ Newest session at the bottom. Read this first at the start of every session.
 - Denzel to add `quality-gate` as a required check on `staging` and `main` (GitHub settings).
 - Then the missing-label fix as the gate's first real challenger.
 - After the build: the maths walkthrough, step by step.
+
+**Phase 7 merged:** PR #21 into `staging` (145 passed, 7 expected failures; gate: first champion recorded), PR #22 into `main`. The release workflow created **`model-v1`** automatically.
+- `quality-gate` made a required check on `staging` and `main` (Denzel approved, and confirmed GitHub's sudo prompt himself).
+
+**Phase 7b · First challenger (same session)**
+- Built `label_similarity_full` (a missing label counts as a non-match), its maths in `maths/cosine_similarity.py`, and explainer support.
+- All 4 pass marks met; missing-label picks 36% to 0%.
+- Gate verdict: PASSED (small but proven win, fair within 4 points, explainable). `champion.json` set to version 2.
+- 158 passed, 1 skipped (pass mark 2 is only for the challenger), 7 expected failures locally.
+
+**Next**
+- Challenger PR, then promote to `main`: this should create **`model-v2`**.
+- Then Phase 8 (API and demo page), and after the build the maths walkthrough.
