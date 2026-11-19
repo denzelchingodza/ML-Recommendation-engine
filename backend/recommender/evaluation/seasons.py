@@ -38,6 +38,7 @@ from recommender.models.thompson import ThompsonRanker
 SEASON_CUTOFFS = ("2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01")
 FRESH_SEASONS = SEASON_CUTOFFS[:3]  # never looked at while choosing models
 SEGMENTS = ("overall", "known", "new")
+MODEL_NAMES = ("random", "most_popular", "label_similarity", "matrix_factorisation", "hybrid", "thompson_hybrid")
 COMPARISONS = (
     ("random", "most_popular"),
     ("label_similarity", "matrix_factorisation"),
@@ -69,7 +70,12 @@ def _first_deal_from(investments: pd.DataFrame, cutoff: str, board) -> pd.Series
     return after.groupby("company_permalink")["date"].min().reindex(board)
 
 
+@lru_cache(maxsize=None)
 def run_season(cutoff: str, k: int = DEFAULT_K, seed: int = 0) -> dict:
+    """One season, scored once per test run and then reused (the gate and the season tests share it).
+
+    Treat the result as read-only. run_season.__wrapped__ recomputes from scratch.
+    """
     investments, companies, pairs = _raw()
     end, practice_cutoff = _shift(cutoff, 1), _shift(cutoff, -1)
 
@@ -94,6 +100,8 @@ def run_season(cutoff: str, k: int = DEFAULT_K, seed: int = 0) -> dict:
         hybrid(),
         ThompsonRanker(hybrid(), strength, seed),
     )
+    if tuple(m.name for m in models) != MODEL_NAMES:
+        raise RuntimeError("MODEL_NAMES is out of date with the models scored in a season")
     known = set(train["company_permalink"])
     results = {}
     for model in models:

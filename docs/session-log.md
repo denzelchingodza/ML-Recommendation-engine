@@ -157,3 +157,18 @@ Newest session at the bottom. Read this first at the start of every session.
 - Phase 6 PR (`feature/phase-6-explain-picks` into `staging`), then promote to `main`.
 - Decide: test a fix for the missing-label bias, or go on to Phase 7 (quality gate).
 - After the build: the maths walkthrough, step by step (Denzel's request).
+
+**Phase 6 merged:** PR #19 into `staging` (127 passed, 7 expected failures on CI), PR #20 into `main`.
+
+## 2026-11-19 · Session 6: Phase 7, the quality gate
+
+- Denzel chose relative fairness (option A) and required explainers ("A and yes") after asking which was best.
+- Built `gate/` (registry, rules, promotion check, command line, release check), `champion.json` (label similarity, v1), a `quality-gate` CI job and a release workflow.
+- The gate blocks matrix factorisation and the hybrid on all three rules, and Thompson on the hybrid on rules 1 and 3. A planted cheat passes rule 1, so the gate can say yes.
+- 145 passed, 7 expected failures locally.
+
+**Next**
+- Phase 7 PR, then promote to `main`: this should create the first release, `model-v1`.
+- Denzel to add `quality-gate` as a required check on `staging` and `main` (GitHub settings).
+- Then the missing-label fix as the gate's first real challenger.
+- After the build: the maths walkthrough, step by step.
