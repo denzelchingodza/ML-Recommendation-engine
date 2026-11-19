@@ -185,3 +185,17 @@ Newest session at the bottom. Read this first at the start of every session.
 **Next**
 - Challenger PR, then promote to `main`: this should create **`model-v2`**.
 - Then Phase 8 (API and demo page), and after the build the maths walkthrough.
+
+**Challenger merged:** PR #23 into `staging` (158 passed, 1 skipped, 7 expected failures; gate PASSED on GitHub with the same numbers), PR #24 into `main`. The release workflow judged it again and tagged **`model-v2`**.
+- CI now takes about 8 minutes (limit 12): watch it before adding more challengers.
+
+**Phase 8a · API (same session)**
+- Plan agreed: split Phase 8 into 8a (API) and 8b (demo page).
+- Built `api/service.py` and `api/app.py` (FastAPI). Checked it on a real server: Sequoia Capital's picks come back with whys and the hindsight check; bad input gets 404 and 422.
+- All 5 pass marks met. 174 passed, 1 skipped, 7 expected failures locally.
+- Finding: big investors' top picks tie (same score and reason), the label-only ceiling.
+- MARA slip: the 7b README edit had dropped one line; restored in this PR.
+
+**Next**
+- Phase 8a PR, then promote to `main`.
+- Phase 8b: the TypeScript demo page (military green scout desk), with its own pass marks.
