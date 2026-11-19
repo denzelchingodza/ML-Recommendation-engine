@@ -27,3 +27,38 @@ jobs:
 
       - name: Run tests
         run: pytest -v
+
+  # Phase 7: the quality gate. Runs on every pull request. If champion.json did
+  # not change it passes in seconds; if it names a new champion, the multi-season
+  # scoreboard decides under the three rules in backend/recommender/gate/rules.py.
+  # It always runs (never skipped), so it can be a required check.
+  quality-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out the code (with history, to read the base branch's champion)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Judge the champion
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git show "origin/${BASE_REF}:backend/champion.json" > "$RUNNER_TEMP/base.json" 2>/dev/null || : > "$RUNNER_TEMP/base.json"
+          python -m recommender.gate --base "$RUNNER_TEMP/base.json" --head champion.json --report "$RUNNER_TEMP/gate-report.md"
+
+      - name: Show the gate report on the run page
+        if: always()
+        run: cat "$RUNNER_TEMP/gate-report.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true

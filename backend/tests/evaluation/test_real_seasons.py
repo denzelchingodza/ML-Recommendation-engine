@@ -45,7 +45,7 @@ def test_pass_mark_2_enough_players(output, cutoff):
 
 
 def test_pass_mark_3_same_seed_same_numbers(output):
-    again = run_season("2009-01-01")  # smallest season, to keep CI time down
+    again = run_season.__wrapped__("2009-01-01")  # recompute from scratch (run_season is cached); smallest season
     first = output["seasons"]["2009-01-01"]
     assert (again["settings"], again["weight"], again["strength"]) == (first["settings"], first["weight"], first["strength"])
     for model in first["results"]:

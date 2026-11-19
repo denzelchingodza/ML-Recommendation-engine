@@ -184,3 +184,13 @@ Why we chose what we chose. Newest at the bottom.
 - **Not checked:** whether a real investor finds the explanations convincing. That needs people, out of scope for now.
 - **Finding:** startups missing a label are 2% of the board but 36% of the picks. A one-tick checklist is shorter (length 1 instead of about 1.41), so one match is not diluted. Possible fixes for later (each needs its own pass marks and a scoreboard run): give a missing label its own "unknown" tick, or always divide by the full two-label length.
 - Test setup slip, fixed before any code changed: a hand-made test investor had no software deals, so the test could not see the line it checked.
+
+## 2026-11-19 · Phase 7: the quality gate
+
+- **Rules, chosen by Denzel before any challenger was judged:** 1 proven win over all seasons (and not a real loss on the fresh seasons); 2 fairness relative to the champion, at most 5 points below its new-startup share in every season; 3 explainable, with an exact explainer.
+- **Why relative fairness (option A):** an absolute rule ("at least the board share") would fail the current champion itself (52 to 63% against board shares of 57 to 64%). A gate that rejects the current starter is broken. Weakness: it only stops things getting worse, it does not force them to get better.
+- **Why explainable is required:** the product promise is a pick plus an honest why. Cost: models like matrix factorisation cannot become champion until someone builds an exact explainer for them.
+- **Mechanics:** `backend/champion.json` holds the champion and a version. A promotion bumps the version by exactly one. The `quality-gate` job always runs (a skipped required check would block merging forever) and finishes in seconds when nothing changed. The release workflow on `main` judges a change again before tagging `model-vN`.
+- The current starter becomes model v1 when this phase reaches `main` (no contest: it earned the spot in Phases 2 to 6).
+- The multi-season run is cached within one test run, so the gate tests and the season tests share one scoring (about 2.5 minutes, not 5). The season repeatability test now recomputes from scratch on purpose.
+- **Pass marks, written before the run:** 1 rejects every recorded loser with the right rule, 2 can say yes to a planted winner (a cheat that sees the answers), 3 no change passes without running the scoreboard, 4 an unknown model fails loudly, 5 a release is tagged only when the champion changes. **All met.**
