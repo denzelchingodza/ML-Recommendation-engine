@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** the gate's first challenger, the missing-label fix (`label_similarity_full`), **passed all three rules** and becomes champion **model v2**. Next up: Phase 8, the API and demo page. See the [roadmap](#roadmap).
+> **Status:** champion **model v2** (`label_similarity_full`) is served by a local web API: picks with an exact why and a hindsight check. Next up: Phase 8b, the demo page. See the [roadmap](#roadmap).
 
 ---
 
@@ -122,6 +122,16 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - **The gate's verdict: PASSED.** Proven win +0.0008 NDCG@10 over all seasons (CI +0.0001 to +0.0015); fresh seasons +0.0006 (CI -0.0000 to +0.0012, not a loss). Fair: at most 4 points below the champion's new-startup share (the rule allows 5). Explainable.
 - **Honest reading:** the win is real but **small** (about 3% of the score). It can be proven at this size because the two models disagree on only a few picks, so the paired differences are low-noise. It passes two rules with thin margins, and it overshoots: missing-label startups are now 0% of picks against 2% of the board. The fix was designed after looking at 2012 explanations, which is why the gate also checks the fresh seasons.
 
+**Phase 8a, the API:**
+
+- `GET /picks?investor=...&k=10` returns the champion's picks, each with its score, its exact why, and a **hindsight check**: did this investor really back the startup after the cutoff? `GET /investors?search=...` finds investor ids; `GET /champion` says which model is serving.
+- The API reads `champion.json` at startup, so it always serves whatever the gate last crowned, and it refuses to serve a model without an exact explainer.
+- Pass marks, all met: the same picks and scores as the scoreboard for all 828 test investors; every why adds up; it follows `champion.json`; bad input gets a plain 404 or 422, never a 500; picks in under a second.
+- **What it shows honestly:** for a big investor like Sequoia Capital (184 past deals), the top picks often share **the same score and the same reason** ("software startup in CA"), because a model that only reads two labels cannot tell those startups apart. Their order comes from the random tie-break. That is the ceiling of a label-only model, and the reason for Version 2 (company descriptions).
+- Runs locally only. Hosting it publicly could cost money and is a separate decision.
+
+Pass marks are written down **before** each run, and failures are reported honestly in this README.
+
 
 ---
 
@@ -157,7 +167,7 @@ ML-Recommendation-engine/
 │   │   ├── evaluation/     the referee: draft board, scoreboard, multi-season scoreboard, and tuning on a practice split
 │   │   ├── explain/        Phase 6: an exact "why" for each pick of the starter
 │   │   ├── gate/           Phase 7: the quality gate rules and the release check
-│   │   └── api/            Phase 8
+│   │   └── api/            Phase 8a: the web API that serves the champion's picks
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
 ```
@@ -195,7 +205,8 @@ flowchart LR
 - [x] **6 · Explain:** an honest "why" for each pick. *All 5 pass marks met; found that startups missing a label are over-picked (2% of the board, 36% of picks).*
 - [x] **7 · Quality gate:** PR gate, staging, tagged release. *All 5 pass marks met: blocks every recorded loser, can say yes to a planted winner, tags only when the champion changes.*
 - [x] **7b · First challenger:** the missing-label fix. *Passed the gate (small but proven win), becomes model v2.*
-- [ ] **8 · Demo:** API and frontend page.
+- [x] **8a · API:** picks from the champion, each with an exact why and a hindsight check. *All 5 pass marks met.*
+- [ ] **8b · Demo page:** TypeScript page on top of the API.
 - [ ] **9 · Version 2:** company descriptions, TF-IDF and embeddings.
 
 ---
@@ -223,6 +234,9 @@ python -m recommender.evaluation.seasons
 # Explain every top-10 pick, with checks and three examples (champion v1, or the v2 model)
 python -m recommender.explain.report
 python -m recommender.explain.report label_similarity_full
+
+# Start the API, then open http://127.0.0.1:8000/docs to try it
+uvicorn recommender.api.app:app --reload
 
 # Run the quality gate exactly as CI does (base = the champion.json on the target branch)
 python -m recommender.gate --base old-champion.json --head champion.json --report gate-report.md

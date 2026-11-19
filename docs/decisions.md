@@ -203,3 +203,16 @@ Why we chose what we chose. Newest at the bottom.
 - **Gate verdict: PASSED.** All seasons +0.0008 (CI +0.0001 to +0.0015); fresh seasons +0.0006 (CI -0.0000 to +0.0012); new-startup share at most 4 points below the champion (2011: 59% vs 63%); explainable.
 - **Caveats, kept visible:** the win is small (about 3% of NDCG@10). It is provable at this size because the paired differences are low-noise: the two models only disagree where a label is missing. Two rules pass with thin margins. It overshoots: missing-label startups go from over-picked (36%) to never picked (0%, against 2% of the board). The fix was designed after seeing 2012 explanations; the fresh seasons show it is not a loss there, but its proven win leans on all four seasons.
 - **Decision:** the rules were set before the contest, and the challenger met them, so it is promoted to champion v2. Changing the rules now because the margin is thin would be moving the hoop after the shot.
+
+## 2026-11-19 · Phase 8a: the API
+
+- **FastAPI + Uvicorn**, local only. Licences checked: FastAPI, Pydantic MIT; Starlette, Uvicorn, httpx BSD-3; certifi (a dependency) MPL-2.0, fine as an unchanged dependency. All free.
+- **One engine, not a copy:** the API uses the same data, draft board, ranking and tie-break order as the scoreboard. Pass mark 1 checks all 828 test investors pick for pick.
+- **Champion from `champion.json`:** the API serves whatever the gate last crowned, and refuses a champion without an exact explainer (the API never shows a pick without an honest why).
+- **Investor ids go in a query parameter**, not the path, because they contain slashes (`/financial-organization/sequoia-capital`).
+- **Hindsight check:** for the 2012 test investors, each pick says whether they really backed it later. Evaluation made visible for a demo.
+- **Errors:** unknown investor 404 with what to do next, bad input 422, unexpected failures logged and answered with a short 500 (no stack trace). Pass mark 4 checks that bad input never causes a 500.
+- **Finding:** big investors' top picks often tie (same score, same reason), because two labels cannot separate startups in the same category and state. The order among ties is the random tie-break. Recorded as the label-only ceiling; Version 2 (descriptions) is the fix.
+- Known warning: Starlette now prefers a newer test client than httpx. Harmless today; revisit if it breaks.
+- Slip fixed: the Phase 7b README edit had dropped the line "Pass marks are written down before each run..."; restored here.
+- Pass marks 1 to 5 all met. 174 passed, 1 skipped, 7 expected failures locally.
