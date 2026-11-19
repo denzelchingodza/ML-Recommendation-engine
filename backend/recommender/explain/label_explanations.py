@@ -89,7 +89,7 @@ class LabelExplainer:
             raise KeyError(f"No training history for investor {investor!r}, so there is nothing to explain from")
         profile = profile.astype(float)
         row = self._row(company)
-        lengths = np.linalg.norm(profile) * np.linalg.norm(row)
+        lengths = np.linalg.norm(profile) * self.model.startup_length(row)
 
         reasons = []
         if lengths > 0:
@@ -116,6 +116,12 @@ class LabelExplainer:
             head = f"Startup in {state}."
         else:
             head = "Startup with no labels."
+        missing = ""
+        if self.model.counts_missing_labels:
+            gone = [c for c in self.model.columns if c not in labels]
+            if gone and len(gone) < len(self.model.columns):
+                names = " or ".join(c.removesuffix("_code") for c in gone)
+                missing = f" No {names} on record, which counts as no match."
         if not reasons:
             return f"{head} No label match with your past deals. Shown by chance to fill the list."
         matches = " and ".join(
@@ -127,4 +133,4 @@ class LabelExplainer:
             text += f" {_first_capital(_pretty(reasons[0].value))} counts for about {reasons[0].part / score:.0%} of the match."
         else:
             text += " That one label is the whole match."
-        return text
+        return text + missing

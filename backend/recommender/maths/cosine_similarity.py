@@ -50,3 +50,30 @@ def cosine_similarity(a, b) -> float:
     """Cosine similarity between two vectors."""
     a = _check(a, "a")
     return float(cosine_similarity_to_rows(a, np.atleast_2d(b))[0])
+
+
+def similarity_with_fixed_row_length(query, rows, row_length: float) -> np.ndarray:
+    """Like cosine similarity, but every row is treated as having the same length.
+
+        score = (a . b) / (|a| x row_length)
+
+    Used by label_similarity_full: every startup is scored as if it had all its
+    labels, so a MISSING label counts as a non-match instead of quietly making
+    the checklist shorter (a shorter checklist means a smaller divisor, so one
+    match would score higher than it should).
+
+    For a row that really has row_length (both labels ticked), this is exactly cosine.
+    """
+    query = _check(query, "query")
+    rows = _check(rows, "rows")
+    if query.ndim != 1:
+        raise ValueError(f"query must be one vector, got shape {query.shape}")
+    if rows.ndim != 2 or rows.shape[1] != query.shape[0]:
+        raise ValueError(f"rows must have shape (n, {query.shape[0]}), got {rows.shape}")
+    if row_length <= 0:
+        raise ValueError(f"row_length must be positive, got {row_length}")
+    lengths = np.full(len(rows), np.linalg.norm(query) * row_length)
+    out = np.zeros(len(rows))
+    ok = lengths > 0
+    out[ok] = (rows @ query)[ok] / lengths[ok]
+    return out

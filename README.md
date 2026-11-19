@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 7 (quality gate) done: a new champion must pass three rules in CI, and every champion gets a tagged release. Next up: the missing-label fix, as the gate's first challenger. See the [roadmap](#roadmap).
+> **Status:** the gate's first challenger, the missing-label fix (`label_similarity_full`), **passed all three rules** and becomes champion **model v2**. Next up: Phase 8, the API and demo page. See the [roadmap](#roadmap).
 
 ---
 
@@ -107,7 +107,7 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 
 **Phase 7, the quality gate (tryout rules posted before anyone plays):**
 
-- The champion lives in [`backend/champion.json`](backend/champion.json): `{"champion": "label_similarity", "version": 1}`. To promote a model, open a PR that changes it and bumps the version by one.
+- The champion lives in [`backend/champion.json`](backend/champion.json), now `{"champion": "label_similarity_full", "version": 2}`. To promote a model, open a PR that changes it and bumps the version by one.
 - The `quality-gate` CI job runs on every PR. If the champion did not change, it passes in seconds. If it did, the multi-season scoreboard judges the challenger under three rules, agreed before any challenger was judged:
   1. **Proven win:** over all four seasons, the CI for (challenger minus champion) sits entirely above zero, and it is not a real loss on the fresh seasons.
   2. **Fair to new startups:** in every season, its share of top-10 slots for new startups is at most 5 points below the champion's. Relative, because the champion itself sits a little below the board share.
@@ -115,7 +115,13 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - On `main`, a champion change is judged again and then tagged as a GitHub release (`model-v1`, `model-v2`, ...) with the gate report as its notes.
 - Checked: the gate blocks every recorded loser for the right reasons (matrix factorisation and the hybrid on all three rules, Thompson on the hybrid on rules 1 and 3), and it **can say yes**: a cheat that peeks at the answers passes rule 1. A referee who never says yes proves nothing.
 
-Pass marks are written down **before** each run, and failures are reported honestly in this README.
+**Phase 7b, the gate's first real challenger: the missing-label fix:**
+
+- `label_similarity_full`: the same as label similarity, but every startup is divided by the full two-label length, so a missing label counts as a **non-match** instead of quietly shortening the checklist. Fully labelled startups score exactly as before; a startup missing one label scores its old score divided by the square root of 2 (0.909 becomes 0.643).
+- Its own pass marks, written before the run, all met: identical scores for fully labelled startups; missing-label picks fall from **36% to 0%** (target: under 10%); its explainer passes all five Phase 6 checks; nothing else breaks.
+- **The gate's verdict: PASSED.** Proven win +0.0008 NDCG@10 over all seasons (CI +0.0001 to +0.0015); fresh seasons +0.0006 (CI -0.0000 to +0.0012, not a loss). Fair: at most 4 points below the champion's new-startup share (the rule allows 5). Explainable.
+- **Honest reading:** the win is real but **small** (about 3% of the score). It can be proven at this size because the two models disagree on only a few picks, so the paired differences are low-noise. It passes two rules with thin margins, and it overshoots: missing-label startups are now 0% of picks against 2% of the board. The fix was designed after looking at 2012 explanations, which is why the gate also checks the fresh seasons.
+
 
 ---
 
@@ -188,6 +194,7 @@ flowchart LR
 - [x] **5b · Multi-season scoreboard:** four seasons, combined with a cluster bootstrap. *Pass marks for leaks, season size and repeatability met; Thompson's edge over label similarity not proven, so not promoted.*
 - [x] **6 · Explain:** an honest "why" for each pick. *All 5 pass marks met; found that startups missing a label are over-picked (2% of the board, 36% of picks).*
 - [x] **7 · Quality gate:** PR gate, staging, tagged release. *All 5 pass marks met: blocks every recorded loser, can say yes to a planted winner, tags only when the champion changes.*
+- [x] **7b · First challenger:** the missing-label fix. *Passed the gate (small but proven win), becomes model v2.*
 - [ ] **8 · Demo:** API and frontend page.
 - [ ] **9 · Version 2:** company descriptions, TF-IDF and embeddings.
 
@@ -213,8 +220,9 @@ python -m recommender.evaluation.scoreboard
 # Print the multi-season scoreboard (four seasons, about 2 to 3 minutes)
 python -m recommender.evaluation.seasons
 
-# Explain every top-10 pick of the starter, with checks and three examples
+# Explain every top-10 pick, with checks and three examples (champion v1, or the v2 model)
 python -m recommender.explain.report
+python -m recommender.explain.report label_similarity_full
 
 # Run the quality gate exactly as CI does (base = the champion.json on the target branch)
 python -m recommender.gate --base old-champion.json --head champion.json --report gate-report.md

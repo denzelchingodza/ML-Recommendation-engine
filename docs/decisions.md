@@ -194,3 +194,12 @@ Why we chose what we chose. Newest at the bottom.
 - The current starter becomes model v1 when this phase reaches `main` (no contest: it earned the spot in Phases 2 to 6).
 - The multi-season run is cached within one test run, so the gate tests and the season tests share one scoring (about 2.5 minutes, not 5). The season repeatability test now recomputes from scratch on purpose.
 - **Pass marks, written before the run:** 1 rejects every recorded loser with the right rule, 2 can say yes to a planted winner (a cheat that sees the answers), 3 no change passes without running the scoreboard, 4 an unknown model fails loudly, 5 a release is tagged only when the champion changes. **All met.**
+
+## 2026-11-19 · Phase 7b: the missing-label fix, first challenger through the gate
+
+- **Fix:** divide every startup by the full checklist length (square root of 2 for two label columns), so a missing label counts as a non-match. Rejected alternative: an "unknown" label, which would let investors "match" on missing data and reward startups for being unlabelled.
+- Kept as a new model, `label_similarity_full`, next to the champion, so the gate can compare them. Its explainer is the Phase 6 explainer: the model tells it which length to divide by, so the two can never disagree. It also says "No state on record, which counts as no match" when a label is missing.
+- **Pass marks, written before the run:** 1 identical scores for fully labelled startups (exact) and old divided by root 2 for one missing label; 2 missing-label picks under 10% (from 36%); 3 the explainer passes all five Phase 6 checks; 4 nothing else breaks. **All met** (missing-label picks: 0%).
+- **Gate verdict: PASSED.** All seasons +0.0008 (CI +0.0001 to +0.0015); fresh seasons +0.0006 (CI -0.0000 to +0.0012); new-startup share at most 4 points below the champion (2011: 59% vs 63%); explainable.
+- **Caveats, kept visible:** the win is small (about 3% of NDCG@10). It is provable at this size because the paired differences are low-noise: the two models only disagree where a label is missing. Two rules pass with thin margins. It overshoots: missing-label startups go from over-picked (36%) to never picked (0%, against 2% of the board). The fix was designed after seeing 2012 explanations; the fresh seasons show it is not a loss there, but its proven win leans on all four seasons.
+- **Decision:** the rules were set before the contest, and the challenger met them, so it is promoted to champion v2. Changing the rules now because the margin is thin would be moving the hoop after the shot.
