@@ -106,3 +106,28 @@ def test_real_names_are_shown_and_junk_names_fall_back_to_the_address():
     assert "(2, e.g. Acme Inc, bolt)" in e.text      # "#NAME?" is junk, so the address is shown
     assert "(1, e.g. cove)" in e.text                 # no name at all, so the address is shown
     assert e.reasons[0].examples == ("/company/acme", "/company/bolt")  # evidence keeps the real ids
+
+
+# Challenger: the same exact explanations for label_similarity_full. Written BEFORE the code.
+
+from recommender.models.label_similarity import LabelSimilarityFullRanker  # noqa: E402
+
+
+def test_challenger_parts_add_up_to_its_score():
+    model = LabelSimilarityFullRanker(COMPANIES).fit(TRAIN)
+    ex = LabelExplainer(model, TRAIN)
+    for company in ["sw_ca", "bio_tx", "sw_none", "blank", "acme"]:
+        e = ex.explain("inv", company)
+        assert e.score == pytest.approx(model.score(0, "inv", np.array([company]))[0], abs=1e-12)
+        assert sum(r.part for r in e.reasons) == pytest.approx(e.score, abs=1e-12)
+
+
+def test_challenger_says_a_missing_label_counted_as_no_match():
+    model = LabelSimilarityFullRanker(COMPANIES).fit(TRAIN)
+    text = LabelExplainer(model, TRAIN).explain("inv", "sw_none").text
+    assert "No state on record, which counts as no match." in text
+
+
+def test_champion_does_not_claim_that():
+    text = LabelExplainer(LabelSimilarityRanker(COMPANIES).fit(TRAIN), TRAIN).explain("inv", "sw_none").text
+    assert "on record" not in text

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from recommender.maths.cosine_similarity import cosine_similarity_to_rows
+from recommender.maths.cosine_similarity import cosine_similarity_to_rows, similarity_with_fixed_row_length
 
 LABEL_COLUMNS = ("category_code", "state_code")
 
@@ -61,10 +61,16 @@ class LabelSimilarityRanker:
     """Score startups by how well their labels match the investor's past deals."""
 
     name = "label_similarity"
+    counts_missing_labels = False  # a missing label just makes the checklist shorter
 
     def __init__(self, companies: pd.DataFrame, columns=LABEL_COLUMNS):
         self.vectors = build_company_vectors(companies, columns)
+        self.columns = tuple(columns)
         self.profiles: dict | None = None
+
+    def startup_length(self, row: np.ndarray) -> float:
+        """The divisor used for this startup's checklist. Shared with the explainer, so they always agree."""
+        return float(np.linalg.norm(np.asarray(row, dtype=float)))
 
     def _rows(self, permalinks) -> np.ndarray:
         """Checklists for these companies. A company missing from the table gets an empty checklist."""
@@ -90,3 +96,31 @@ class LabelSimilarityRanker:
         if profile is None:
             raise KeyError(f"No training history for investor {investor!r}, so there is no profile to match against")
         return cosine_similarity_to_rows(profile, self._rows(candidates))
+
+
+class LabelSimilarityFullRanker(LabelSimilarityRanker):
+    """Challenger (Phase 7b): a missing label counts as a non-match.
+
+    Phase 6 found that startups missing a label were 2% of the board but 36% of
+    the champion's picks: with one tick instead of two, their checklist is
+    shorter, so a single match is not diluted. Here every startup is divided by
+    the full checklist length (square root of the number of label columns), as if
+    it had all its labels.
+
+    Fully labelled startups score exactly as before; a startup missing one of two
+    labels scores its old score divided by the square root of 2.
+    """
+
+    name = "label_similarity_full"
+    counts_missing_labels = True
+
+    def startup_length(self, row: np.ndarray) -> float:
+        return float(np.sqrt(len(self.columns)))
+
+    def score(self, investor_index: int, investor: str, candidates: np.ndarray) -> np.ndarray:
+        if self.profiles is None:
+            raise RuntimeError("LabelSimilarityFullRanker.score called before fit")
+        profile = self.profiles.get(investor)
+        if profile is None:
+            raise KeyError(f"No training history for investor {investor!r}, so there is no profile to match against")
+        return similarity_with_fixed_row_length(profile, self._rows(candidates), np.sqrt(len(self.columns)))
