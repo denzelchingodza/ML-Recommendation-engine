@@ -1,0 +1,53 @@
+# Phase 7: a tagged release whenever the champion changes on main.
+# The promotion is judged again here, on main, before it is tagged.
+# Free on a public repo (GitHub Actions and Releases).
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # needed to create the tag and the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Check out the code (with history, to read the previous champion)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Work out whether the champion changed
+        id: tag
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          git show "${BEFORE}:backend/champion.json" > "$RUNNER_TEMP/before.json" 2>/dev/null || : > "$RUNNER_TEMP/before.json"
+          tag=$(python -m recommender.gate.release --before "$RUNNER_TEMP/before.json" --after champion.json --notes "$RUNNER_TEMP/notes.md")
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Create the release
+        if: steps.tag.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "$TAG already exists, nothing to do."
+            exit 0
+          fi
+          gh release create "$TAG" --target "$SHA" --title "Champion ${TAG}" --notes-file "$RUNNER_TEMP/notes.md"

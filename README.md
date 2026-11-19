@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** Phase 6 (explain each pick) done: every pick of the starter gets an exact, checked reason. Next up: Phase 7, the quality gate. See the [roadmap](#roadmap).
+> **Status:** Phase 7 (quality gate) done: a new champion must pass three rules in CI, and every champion gets a tagged release. Next up: the missing-label fix, as the gate's first challenger. See the [roadmap](#roadmap).
 
 ---
 
@@ -105,6 +105,16 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - **Finding:** startups missing a label (usually the category) are 2% of the board but **36% of the picks**. With one tick instead of two, their checklist is shorter, so a single match is not diluted and scores high (for example 0.909 for a CA-only startup shown to a CA-heavy investor). The explanations made this bias visible. It is not fixed here: changing the starter needs its own pass marks and a scoreboard run.
 
 
+**Phase 7, the quality gate (tryout rules posted before anyone plays):**
+
+- The champion lives in [`backend/champion.json`](backend/champion.json): `{"champion": "label_similarity", "version": 1}`. To promote a model, open a PR that changes it and bumps the version by one.
+- The `quality-gate` CI job runs on every PR. If the champion did not change, it passes in seconds. If it did, the multi-season scoreboard judges the challenger under three rules, agreed before any challenger was judged:
+  1. **Proven win:** over all four seasons, the CI for (challenger minus champion) sits entirely above zero, and it is not a real loss on the fresh seasons.
+  2. **Fair to new startups:** in every season, its share of top-10 slots for new startups is at most 5 points below the champion's. Relative, because the champion itself sits a little below the board share.
+  3. **Explainable:** it comes with an exact explainer that passes the Phase 6 checks.
+- On `main`, a champion change is judged again and then tagged as a GitHub release (`model-v1`, `model-v2`, ...) with the gate report as its notes.
+- Checked: the gate blocks every recorded loser for the right reasons (matrix factorisation and the hybrid on all three rules, Thompson on the hybrid on rules 1 and 3), and it **can say yes**: a cheat that peeks at the answers passes rule 1. A referee who never says yes proves nothing.
+
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
 ---
@@ -131,14 +141,16 @@ ML-Recommendation-engine/
 ├── LICENSE                 MIT, covers the code only
 ├── docs/decisions.md       why we chose what we chose
 ├── docs/session-log.md     what each working session did, and where we stopped
-├── .github/workflows/      CI: runs tests on every PR
+├── .github/workflows/      CI: tests and the quality gate on every PR, a release when the champion changes
 ├── backend/                Python: data, maths, models, API
+│   ├── champion.json       the current champion and its version
 │   ├── recommender/
 │   │   ├── data/           Phase 1: load, clean, split
 │   │   ├── maths/          ALL the maths, one job per file (ranking metrics, confidence intervals, cosine similarity, ranking loss, score scaling)
 │   │   ├── models/         uses the maths to make picks (baselines, label similarity, matrix factorisation, hybrid)
 │   │   ├── evaluation/     the referee: draft board, scoreboard, multi-season scoreboard, and tuning on a practice split
 │   │   ├── explain/        Phase 6: an exact "why" for each pick of the starter
+│   │   ├── gate/           Phase 7: the quality gate rules and the release check
 │   │   └── api/            Phase 8
 │   └── tests/              one test file per maths file
 └── frontend/               TypeScript (Node.js) demo page, Phase 8
@@ -154,14 +166,14 @@ Folders are created in the phase they belong to, so nothing here is an empty pla
 flowchart LR
     F[feature/...<br/>new work] -- pull request + CI --> S[staging<br/>checked again]
     S -- pull request + CI --> M[main<br/>production]
-    M -- tag --> R[release v0.x.y]
+    M -- champion changed --> R[release model-vN]
 ```
 
 - **`feature/...`**: every new piece of work starts here.
 - **`staging`**: merged features are checked again here.
 - **`main`**: production. Changes only arrive from `staging`, and releases are tagged.
 - Nothing is pushed until it is proven to work. Every PR must pass CI.
-- `main` and `staging` are **protected**: no direct pushes, the `backend-tests` CI check must pass before merging, and nobody can bypass these rules (the owner included). Force pushes and branch deletion are blocked.
+- `main` and `staging` are **protected**: no direct pushes, the `backend-tests` and `quality-gate` CI checks must pass before merging, and nobody can bypass these rules (the owner included). Force pushes and branch deletion are blocked.
 
 ---
 
@@ -175,7 +187,7 @@ flowchart LR
 - [x] **5 · Fair chances:** exposure check, plus Thompson sampling on the hybrid. *Fairer and the highest score so far, but two near misses, so not promoted.*
 - [x] **5b · Multi-season scoreboard:** four seasons, combined with a cluster bootstrap. *Pass marks for leaks, season size and repeatability met; Thompson's edge over label similarity not proven, so not promoted.*
 - [x] **6 · Explain:** an honest "why" for each pick. *All 5 pass marks met; found that startups missing a label are over-picked (2% of the board, 36% of picks).*
-- [ ] **7 · Quality gate:** PR gate, staging, tagged release.
+- [x] **7 · Quality gate:** PR gate, staging, tagged release. *All 5 pass marks met: blocks every recorded loser, can say yes to a planted winner, tags only when the champion changes.*
 - [ ] **8 · Demo:** API and frontend page.
 - [ ] **9 · Version 2:** company descriptions, TF-IDF and embeddings.
 
@@ -203,6 +215,9 @@ python -m recommender.evaluation.seasons
 
 # Explain every top-10 pick of the starter, with checks and three examples
 python -m recommender.explain.report
+
+# Run the quality gate exactly as CI does (base = the champion.json on the target branch)
+python -m recommender.gate --base old-champion.json --head champion.json --report gate-report.md
 ```
 
 ---
