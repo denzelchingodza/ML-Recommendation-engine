@@ -49,7 +49,7 @@ describe("the main flow", () => {
     expect(root.querySelectorAll(".results li")).toHaveLength(10);
 
     await click($("#hindsight"));
-    expect($("#panel").textContent).toContain("Austin Ventures invested in 3 of these 10.");
+    expect($("#panel").textContent).toContain("3 of 10suggestions Austin Ventures really invested in");
     expect(document.activeElement?.id).toBe("hindsight");
   });
 

@@ -27,7 +27,7 @@ interface State {
 
 const SHELL = `
 <header class="top"><h1>Scout Desk</h1>
-  <span class="tag">Pick an investor and we'll suggest new startups that look like the ones they've backed before.</span>
+  <span class="tag">Pick an investor and the model suggests new startups that look like the ones they've backed before.</span>
   <span class="model" id="model"></span></header>
 <div class="app" id="app">
   <aside class="side" aria-label="Investors">
@@ -47,7 +47,7 @@ const SHELL = `
 </div>`;
 
 const WELCOME = `<div class="empty"><h3>Choose an investor to start</h3>
-  <p>Pick one from the list, or search by name. We'll show what they usually invest in, then suggest new startups that fit.</p></div>`;
+  <p>Pick one from the list, or search by name. The model shows what they usually invest in, then suggests new startups that fit.</p></div>`;
 
 export function mountApp(root: HTMLElement, api: Api): { ready: Promise<void> } {
   root.innerHTML = SHELL;

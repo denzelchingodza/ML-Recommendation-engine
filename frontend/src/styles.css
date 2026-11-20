@@ -63,6 +63,24 @@ button, input { font: inherit; color: inherit }
 .did h3 { font: 600 19px/1.2 var(--head); margin: 0 0 4px }
 .did p { margin: 0 0 12px }
 .did .result { font-weight: 600; margin: 12px 0 0 }
+.panel > .results-layout { max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 24px; align-items: start }
+.side-col > * + * { margin-top: 18px }
+.work { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px }
+.work h3 { font: 600 19px/1.2 var(--head); margin: 0 0 6px }
+ol.steps { list-style: none; margin: 0 0 10px; padding: 0 }
+ol.steps li { display: grid; grid-template-columns: 26px 1fr; column-gap: 8px; padding: 10px 0; border-top: 1px solid var(--line) }
+ol.steps li:first-child { border-top: 0 }
+.steps .num { grid-row: span 3; font: 600 16px/1.4 var(--head); color: var(--quiet) }
+.steps .label { font-size: 13px; color: var(--quiet) }
+.steps .figure { font: 600 19px/1.3 var(--head) }
+.steps .line { font-size: 14px; color: var(--quiet) }
+.looks { font-size: 14px; color: var(--quiet); margin: 0 0 4px }
+.stats { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 14px }
+.stats strong { display: block; font: 600 30px/1.1 var(--head) }
+.stats span { font-size: 14px; color: var(--quiet) }
+.facts { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 14px; color: var(--quiet) }
+.facts b { font-weight: 500; color: var(--ink) }
+@media (max-width: 1100px) { .panel > .results-layout { grid-template-columns: 1fr } }
 
 ol.results { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px }
 ol.results li { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 12px 16px; border-top: 1px solid var(--line) }
@@ -92,5 +110,6 @@ ol.results li:first-child { border-top: 0 }
   .key { font-size: 19px }
   ol.results li { grid-template-columns: 1fr }
   .state, .later { justify-self: start }
+  .stats strong { font-size: 26px }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }

@@ -1,6 +1,7 @@
 // Turns API answers into screens. Pure functions returning HTML, so every screen can be tested.
 // Design rules (agreed 19 Nov 2026): plain states instead of scores; every claim shows its evidence;
-// uncertainty is its own screen; numbers only behind "How we worked this out". All API text is escaped.
+// uncertainty is its own screen; the model shows its working as steps, raw scores only behind "Show the maths".
+// The model speaks for itself (never "we"). All API text is escaped.
 
 import type { Problem } from "./api";
 import type { Champion, InvestorSummary, Pick, Picks, Profile } from "./types";
@@ -30,7 +31,7 @@ export function overview(p: Profile): string {
   const facts = [st ? `${st.count} of its ${p.past_deals} investments before ${y} were in ${e(st.name)}` : "",
                  sec ? `${sec.count} were ${e(sec.name)} companies` : ""].filter(Boolean).join(", and ");
   return `<p class="report">${habit}</p>
-  <p class="note">${facts ? `${facts}. ` : ""}We'll look for new startups like that.</p>
+  <p class="note">${facts ? `${facts}. ` : ""}The model will look for new startups like that.</p>
   <button type="button" class="primary" id="find">Find startups for this investor</button>`;
 }
 
@@ -40,16 +41,7 @@ export function matchWords(p: Pick): string {
   return "Possible";
 }
 
-const evidence = (p: Pick): string => p.reasons.length
-  ? p.reasons.map((r) => capitalise(r.value_name)).sort((a, b) => a.localeCompare(b)).join(", ")
-  : "Nothing in common on record";
-
 const TICK = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
-
-function rows(list: Pick[], hindsight: boolean): string {
-  return `<ol class="results">${list.map((p) => `<li><span class="name">${e(p.name)}</span><span class="state">${matchWords(p)}</span>
-    <span class="why">${e(evidence(p))}</span>${hindsight && p.backed_later ? `<span class="later">${TICK}They invested</span>` : "<span></span>"}</li>`).join("")}</ol>`;
-}
 
 const reasonOf = (p: Pick, label: "state" | "category") => p.reasons.find((r) => r.label === label);
 
@@ -66,57 +58,83 @@ function keyLine(data: Picks, list: Pick[]): string {
   return `${subject} like ${e(who)} past investments${what}.`;
 }
 
-function howPanel(data: Picks, list: Pick[], profile: Profile | null): string {
-  const y = year(data.cutoff);
+function howPanel(data: Picks, list: Pick[], profile: Profile | null, maths: boolean): string {
+  const y = year(data.cutoff), n = list.length, first = list[0]!;
+  const deals = profile ? profile.past_deals : data.past_deals;
+  const st = profile?.top_state ?? null, sec = profile?.top_sector ?? null;
   const groups = new Map<number, Pick[]>();
   for (const p of list) groups.set(p.score, [...(groups.get(p.score) ?? []), p]);
-  const parts = [...groups.values()].map((g) => {
-    const p = g[0]!, shown = g.length, labels = listOf(p.reasons.map((r) => r.value_name));
-    const examples = listOf([...new Set(p.reasons.flatMap((r) => r.example_names))]);
-    const scoreParts = p.reasons.map((r) => `${e(r.value_name)} gives ${r.part.toFixed(2)}`).join(", ");
-    return `<p>${p.equally_strong > shown
-        ? `${p.equally_strong} startups match exactly as well as ${shown === 1 ? "this one" : `these ${shown}`} (${e(labels)}). We can't tell them apart, so we show ${shown} of them at random.`
-        : `No other startup matches as well as ${shown === 1 ? "this one" : `these ${shown}`} (${e(labels)}).`}</p>
-      ${examples ? `<p>Past investments they look like: ${e(examples)}.</p>` : ""}
-      <p>For the curious: ${shown === 1 ? "it scores" : "each one scores"} ${p.score.toFixed(2)} out of 1${scoreParts ? ` (${scoreParts})` : ""}.</p>`;
+  const oneGroup = groups.size === 1;
+  const shared = listOf(first.reasons.map((r) => r.value_name));
+  const examples = listOf([...new Set(list.flatMap((p) => p.reasons.flatMap((r) => r.example_names)))].slice(0, 4));
+  const pattern = st && sec ? `${e(st.name)} and ${e(sec.name)}` : st ? e(st.name) : sec ? e(capitalise(sec.name)) : "No clear pattern";
+  const patternLine = [st ? `${st.count} of ${deals} in ${e(st.name)}` : "", sec ? `${sec.count} ${e(sec.name)} companies` : ""].filter(Boolean).join(", ");
+  const steps: [string, string, string][] = [
+    ["Read the history", plural(deals, "investment", "investments"), `Everything ${e(data.name)} invested in before ${y}`],
+    ["Found the pattern", pattern, patternLine || "Too few labels on record to see a pattern"],
+    ["Searched", `${data.searched.toLocaleString("en")} startups`, `Every startup that raised money from ${y} on, except ones it already backed`],
+    oneGroup && first.equally_strong > n
+      ? ["Matched", `${first.equally_strong.toLocaleString("en")} equally strong`, `All share ${e(shared)} with its past investments`]
+      : ["Matched", `${n} closest`, "Ranked by how much each shares with its past investments"],
+    oneGroup && first.equally_strong > n
+      ? ["Picked", `${n} at random`, `It can't tell those ${first.equally_strong.toLocaleString("en")} apart, so it shows a random ${n}`]
+      : ["Picked", `${n} shown`, "The strongest matches, best first"],
+  ];
+  const mathLines = [...groups.values()].map((g) => {
+    const p = g[0]!;
+    const parts = p.reasons.map((r) => `${e(capitalise(r.value_name))} ${r.part.toFixed(2)}`).join(" + ");
+    return `<p>Score ${p.score.toFixed(2)} out of 1${parts ? ` = ${parts}` : ""}${groups.size > 1 ? ` (${g.length} startups)` : ""}</p>`;
   }).join("");
-  const deals = profile ? profile.past_deals : data.past_deals;
-  return `<div class="how" id="how-panel"><p>We compared every startup that raised money from ${y} on with ${e(possessive(data.name))} ${deals} past investments, on two things: sector and state.</p>${parts}</div>`;
+  return `<section class="work" aria-labelledby="work-title"><h3 id="work-title">How the model worked this out</h3>
+    <ol class="steps">${steps.map(([label, figure, line], i) => `<li><span class="num">${i + 1}</span><span class="label">${label}</span>
+      <strong class="figure">${figure}</strong><span class="line">${line}</span></li>`).join("")}</ol>
+    ${examples ? `<p class="looks">Looks like past investments such as ${e(examples)}.</p>` : ""}
+    <button type="button" class="link" id="how" aria-expanded="${maths}" aria-controls="maths-panel">${maths ? "Hide the maths" : "Show the maths"}</button>
+    ${maths ? `<div class="how" id="maths-panel">${mathLines}<p>Each label's part is how often it appears in the investor's past, scaled so a perfect match scores 1.</p></div>` : ""}
+  </section>`;
 }
 
 export interface ResultsOptions { hindsight: boolean; how: boolean }
+
+const facts = (p: Pick): string => {
+  const sec = reasonOf(p, "category"), st = reasonOf(p, "state");
+  if (!sec && !st) return `<span class="facts">Nothing in common on record</span>`;
+  return `<span class="facts">${sec ? `<span>Sector <b>${e(capitalise(sec.value_name))}</b></span>` : ""}${st ? `<span>State <b>${e(st.value_name)}</b></span>` : ""}</span>`;
+};
+
+function rowsOf(list: Pick[], hindsight: boolean): string {
+  return `<ol class="results">${list.map((p) => `<li><span class="name">${e(p.name)}</span><span class="state">${matchWords(p)}</span>
+    ${facts(p)}${hindsight && p.backed_later ? `<span class="later">${TICK}They invested</span>` : "<span></span>"}</li>`).join("")}</ol>`;
+}
 
 export function results(data: Picks, profile: Profile | null, opts: ResultsOptions): string {
   const list = confident(data.picks);
   if (!list.length) {
     return `<div class="empty"><h3>No close matches for ${e(data.name)}</h3>
-      <p>Startups we're less sure about are in the Review tab.</p>
+      <p>Startups the model is less sure about are in the Review tab.</p>
       <button type="button" class="secondary" id="to-review">Go to Review</button></div>`;
   }
   const y = year(data.cutoff), n = list.length, hits = list.filter((p) => p.backed_later).length;
   const later = profile?.later_investments;
-  const outcome = hits ? `${e(data.name)} invested in ${hits} of ${n === 1 ? "this one" : `these ${n}`}.`
-    : `${e(data.name)} invested in none of ${n === 1 ? "this one" : `these ${n}`}.${later ? ` It made ${plural(later, "other investment", "other investments")} in that time.` : ""}`;
-  return `<p class="key">${keyLine(data, list)}</p>
-  <button type="button" class="link" id="how" aria-expanded="${opts.how}" aria-controls="how-panel">How we worked this out</button>
-  ${opts.how ? howPanel(data, list, profile) : ""}
-  ${data.hindsight_available ? `<section class="did" aria-labelledby="did-title"><h3 id="did-title">Did it work?</h3>
-    <p>We only used investments up to ${y}. See what really happened from ${y} on.</p>
+  const did = data.hindsight_available ? `<section class="did" aria-labelledby="did-title"><h3 id="did-title">Did it work?</h3>
+    <p>The model only used investments up to ${y}. See what ${e(data.name)} really did from ${y} on.</p>
     <button type="button" class="secondary" id="hindsight" aria-pressed="${opts.hindsight}">${opts.hindsight ? "Hide what really happened" : "Check against what really happened"}</button>
-    ${opts.hindsight ? `<p class="result" role="status">${outcome}</p>` : ""}</section>` : ""}
-  ${rows(list, opts.hindsight)}`;
+    ${opts.hindsight ? `<div class="stats" role="status"><div><strong>${hits} of ${n}</strong><span>suggestions ${e(data.name)} really invested in</span></div>
+      ${later ? `<div><strong>${later - hits}</strong><span>other startups ${e(data.name)} invested in instead</span></div>` : ""}</div>` : ""}</section>` : "";
+  return `<div class="results-layout"><div class="main-col"><p class="key">${keyLine(data, list)}</p>${rowsOf(list, opts.hindsight)}</div>
+    <div class="side-col">${howPanel(data, list, profile, opts.how)}${did}</div></div>`;
 }
 
 export function review(data: Picks, opts: ResultsOptions): string {
   const list = unsure(data.picks);
   if (!list.length) {
     return `<div class="empty"><h3>Nothing to double-check</h3>
-      <p>All of these startups match on sector, state or both. Startups we're less sure about, for example ones missing their sector or state, would show up here.</p>
+      <p>All of these startups match on sector, state or both. Startups the model is less sure about, for example ones missing their sector or state, would show up here.</p>
       <button type="button" class="secondary" id="to-results">Back to results</button></div>`;
   }
   return `<p class="key">${plural(list.length, "startup needs", "startups need")} a second look</p>
-    <p class="note">We're less sure about these: they're missing a sector or state on record, or share little with ${e(possessive(data.name))} past investments.</p>
-    ${rows(list, opts.hindsight)}`;
+    <p class="note">The model is less sure about these: they're missing a sector or state on record, or share little with ${e(possessive(data.name))} past investments.</p>
+    ${rowsOf(list, opts.hindsight)}`;
 }
 
 export function problem(p: Problem, investorName: string | null): string {
@@ -124,9 +142,9 @@ export function problem(p: Problem, investorName: string | null): string {
   const screens: Record<Problem["kind"], [string, string, string, string]> = {
     unreachable: ["Couldn't load startups right now", "The recommender didn't answer. Check it is running, then try again.", "retry", "Try again"],
     server: ["The recommender ran into a problem", "It has been logged on the recommender's side. Try again in a moment.", "retry", "Try again"],
-    unknown_investor: ["We couldn't find that investor", "They may have no investments before 2012 in our data. Choose another investor.", "other", "Choose another investor"],
+    unknown_investor: ["That investor isn't in the data", "They may have no investments before 2012 on record. Choose another investor.", "other", "Choose another investor"],
     not_enough_history: [`Not enough history on ${who} yet`,
-      p.kind === "not_enough_history" ? `We need at least ${p.needed} investments before 2012 to see what an investor likes. ${capitalise(who)} has ${p.pastDeals}.` : "",
+      p.kind === "not_enough_history" ? `The model needs at least ${p.needed} investments before 2012 to learn what an investor likes. ${capitalise(who)} has ${p.pastDeals}.` : "",
       "other", "Choose another investor"],
     bad_request: ["The page asked for something the recommender can't answer", "This is a bug in the page, not your input. Choose another investor and try again.", "other", "Choose another investor"],
   };

@@ -149,4 +149,4 @@ class RecommendationService:
             })
         return {"investor": investor, "name": self.names.get(investor, investor), "past_deals": len(seen),
                 "champion": self.champion, "cutoff": self.dataset.split_report.cutoff,
-                "hindsight_available": later is not None, "picks": out}
+                "hindsight_available": later is not None, "searched": int(len(candidates)), "picks": out}
