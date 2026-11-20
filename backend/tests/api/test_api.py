@@ -102,7 +102,8 @@ def test_pass_mark_4_unknown_investor_message_says_what_to_do(client):
 def test_search_finds_investors_and_validates_input(client):
     found = client.get("/investors", params={"search": "sequoia", "limit": 5}).json()["investors"]
     assert found and all("sequoia" in (i["name"] + i["id"]).lower() for i in found)
-    assert all(i["past_deals"] >= 5 for i in found)
+    # Phase 8b: search now also lists investors with too little history, flagged, so the page can say so
+    assert all(i["enough_history"] == (i["past_deals"] >= 5) for i in found)
     assert client.get("/investors", params={"limit": 0}).status_code == 422
     assert client.get("/investors", params={"search": "zzzz-no-such-investor"}).json()["investors"] == []
 

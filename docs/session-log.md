@@ -199,3 +199,17 @@ Newest session at the bottom. Read this first at the start of every session.
 **Next**
 - Phase 8a PR, then promote to `main`.
 - Phase 8b: the TypeScript demo page (military green scout desk), with its own pass marks.
+
+**Phase 8a merged:** PR #25 into `staging` (174 passed, 1 skipped, 7 expected failures), PR #26 into `main`. Champion unchanged, so no new release.
+
+**Phase 8b · Scout Desk (same session)**
+- Denzel shared his design principles and asked for a plan first, then to see the design before creating a branch.
+- Built a prototype from real API answers; simplified the words after Denzel said he did not understand the first version; he approved the simpler one.
+- Built: API additions (match state, equal matches, investor profile, not-enough-history answer) and the `frontend/` page, with a `frontend` CI job.
+- Checks: backend 189 passed, 1 skipped, 7 expected failures; frontend 40 passed; end-to-end in a real browser all passed (including the API going down and recovering).
+- MARA slip: a command included `git status` on Denzel's Mac again (second time). Checked: no lock file, nothing changed. New rule for MARA: no command on the Mac contains the word git.
+
+**Next**
+- Phase 8b PR, then promote to `main`.
+- Decide whether `frontend` becomes a required check.
+- Then Version 2 (company descriptions), and the maths walkthrough after the build.

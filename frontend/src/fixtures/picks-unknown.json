@@ -1,0 +1,6 @@
+{
+ "status": 404,
+ "body": {
+  "detail": "No investor '/person/nobody' with any investments before the cutoff. Use /investors?search=... to find a valid id."
+ }
+}

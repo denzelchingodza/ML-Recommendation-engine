@@ -1,0 +1,13 @@
+{
+ "status": 200,
+ "body": {
+  "investors": [
+   {
+    "id": "/financial-organization/sequoia-capital",
+    "name": "Sequoia Capital",
+    "past_deals": 184,
+    "enough_history": true
+   }
+  ]
+ }
+}

@@ -4,7 +4,7 @@ A startup recommender for investors, with **CI/CD for models**.
 
 Given an investor, it suggests the startups they are most likely to back, based on what they have backed before. Every change to the model has to prove itself: a pull request retrains the model on a sample and scores it on held-out data, and the merge is blocked unless the new model beats the current one. Like a team that only starts a new player if he beats the current starter in practice.
 
-> **Status:** champion **model v2** (`label_similarity_full`) is served by a local web API: picks with an exact why and a hindsight check. Next up: Phase 8b, the demo page. See the [roadmap](#roadmap).
+> **Status:** **Scout Desk**, the demo page, runs on top of the API: pick an investor, see startups that look like their past investments in plain words, and check them against what really happened. Next up: Version 2 (company descriptions). See the [roadmap](#roadmap).
 
 ---
 
@@ -130,6 +130,14 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 - **What it shows honestly:** for a big investor like Sequoia Capital (184 past deals), the top picks often share **the same score and the same reason** ("software startup in CA"), because a model that only reads two labels cannot tell those startups apart. Their order comes from the random tie-break. That is the ceiling of a label-only model, and the reason for Version 2 (company descriptions).
 - Runs locally only. Hosting it publicly could cost money and is a separate decision.
 
+**Phase 8b, the demo page (Scout Desk):**
+
+- A TypeScript page (Vite, no framework) in [`frontend/`](frontend): investor list on the left; **Overview**, **Results** and **Review** tabs on the right; one main action, **Find startups for this investor**.
+- Designed to rules agreed before building: no raw scores (results say "Same sector and state", with the numbers behind **How we worked this out**); every claim shows its evidence; uncertainty is its own screen ("Not enough history", "Couldn't load startups right now" with **Try again**, unsure picks in Review); one accent colour for one job; plain, user-side words.
+- **Did it work?** compares the suggestions with what the investor really did after the cutoff (Austin Ventures: 3 of 10; Connecticut Innovations: 7 of 10; Sequoia Capital: 0 of 10).
+- The API gained what the page needed: a plain match state per pick, how many startups match equally well, an investor profile for Overview, and "not enough history" as its own answer.
+- Checked: strict TypeScript; 40 page tests on recorded real API answers (faithful names and marks, no numbers outside "How we worked this out", every problem screen, the full flow by mouse and keyboard); contrast measured with the WCAG formula (all text at least 4.5:1); and an end-to-end run against the real API in a real browser, including the API going down and recovering with **Try again**, 44px targets, and phone width.
+
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
 
@@ -169,7 +177,7 @@ ML-Recommendation-engine/
 │   │   ├── gate/           Phase 7: the quality gate rules and the release check
 │   │   └── api/            Phase 8a: the web API that serves the champion's picks
 │   └── tests/              one test file per maths file
-└── frontend/               TypeScript (Node.js) demo page, Phase 8
+└── frontend/               Scout Desk, the TypeScript demo page (Phase 8b)
 ```
 
 Folders are created in the phase they belong to, so nothing here is an empty placeholder.
@@ -206,7 +214,7 @@ flowchart LR
 - [x] **7 · Quality gate:** PR gate, staging, tagged release. *All 5 pass marks met: blocks every recorded loser, can say yes to a planted winner, tags only when the champion changes.*
 - [x] **7b · First challenger:** the missing-label fix. *Passed the gate (small but proven win), becomes model v2.*
 - [x] **8a · API:** picks from the champion, each with an exact why and a hindsight check. *All 5 pass marks met.*
-- [ ] **8b · Demo page:** TypeScript page on top of the API.
+- [x] **8b · Demo page:** Scout Desk on top of the API. *All 6 pass marks met.*
 - [ ] **9 · Version 2:** company descriptions, TF-IDF and embeddings.
 
 ---
@@ -240,6 +248,15 @@ uvicorn recommender.api.app:app --reload
 
 # Run the quality gate exactly as CI does (base = the champion.json on the target branch)
 python -m recommender.gate --base old-champion.json --head champion.json --report gate-report.md
+```
+
+The demo page (needs Node.js 22). Keep the API running in one terminal, then in a second:
+
+```bash
+cd frontend
+npm install
+npm run dev        # open http://localhost:5173
+npm test           # the page's tests
 ```
 
 ---
