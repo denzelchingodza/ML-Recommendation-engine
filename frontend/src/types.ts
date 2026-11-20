@@ -25,5 +25,5 @@ export interface Pick {
 
 export interface Picks {
   investor: string; name: string; past_deals: number; champion: Champion; cutoff: string;
-  hindsight_available: boolean; picks: Pick[];
+  hindsight_available: boolean; searched: number; picks: Pick[];
 }

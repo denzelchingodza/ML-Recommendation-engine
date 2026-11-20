@@ -63,6 +63,15 @@ def test_equal_matches_count_the_whole_board(service, client):
     assert body["picks"][0]["equally_strong"] == 27   # measured for the design preview
 
 
+
+def test_searched_counts_every_startup_the_model_scored(service, client):
+    body = client.get("/picks", params={"investor": AUSTIN, "k": 10}).json()
+    seen = service.seen[AUSTIN]
+    expected = int((~np.isin(service.board, list(seen))).sum())
+    assert body["searched"] == expected
+    assert body["searched"] < len(service.board)   # startups Austin already backed are left out
+
+
 # 3 Not enough history
 
 

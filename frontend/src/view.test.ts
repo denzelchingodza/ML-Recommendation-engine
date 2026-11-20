@@ -25,11 +25,11 @@ describe("results are faithful to the API", () => {
     const backed = austin.picks.filter((p) => p.backed_later).length;
     expect(text(off)).not.toContain("They invested");
     expect(text(on).split("They invested").length - 1).toBe(backed);
-    expect(text(on)).toContain(`Austin Ventures invested in ${backed} of these 10.`);
+    expect(text(on)).toContain(`${backed} of 10suggestions Austin Ventures really invested in`);
   });
 
   it("says plainly when none of the picks were backed later", () => {
-    expect(text(results(sequoia, null, { hindsight: true, how: false }))).toContain("Sequoia Capital invested in none of these 10.");
+    expect(text(results(sequoia, null, { hindsight: true, how: false }))).toContain("0 of 10suggestions Sequoia Capital really invested in");
   });
 
   it("leads with one plain sentence", () => {
@@ -39,16 +39,28 @@ describe("results are faithful to the API", () => {
 });
 
 describe("hide the maths, show the meaning", () => {
-  it("shows no scores or percentages unless 'How we worked this out' is open", () => {
+  it("the model speaks for itself: no screen says 'we' or 'our'", () => {
+    const screens = [results(austin, profile, { hindsight: true, how: true }), results(sequoia, null, { hindsight: true, how: true }),
+      overview(profile), review(austin, { hindsight: true, how: true })];
+    for (const html of screens) expect(text(html)).not.toMatch(/\b(we|our|us)\b/i);
+  });
+
+  it("the Searched step shows how many startups the model really searched", () => {
+    expect(text(results(austin, profile, { hindsight: false, how: false }))).toContain(`${austin.searched.toLocaleString("en")} startups`);
+  });
+
+  it("shows no scores or percentages unless 'Show the maths' is open", () => {
     for (const html of [results(austin, profile, { hindsight: true, how: false }), overview(profile), review(austin, { hindsight: true, how: false })]) {
       expect(text(html)).not.toMatch(/\d\.\d\d|%/);
     }
   });
 
-  it("puts the numbers and the equal matches behind 'How we worked this out'", () => {
+  it("shows the model's working as steps, with the raw score behind 'Show the maths'", () => {
     const t = text(results(austin, profile, { hindsight: false, how: true }));
-    expect(t).toContain("27 startups match exactly as well as these 10");
-    expect(t).toContain("each one scores 0.84 out of 1");
+    expect(t).toContain("How the model worked this out");
+    expect(t).toContain("27 equally strong");
+    expect(t).toContain("It can't tell those 27 apart, so it shows a random 10");
+    expect(t).toContain("Score 0.84 out of 1 = Texas 0.63 + Software 0.20");
     expect(t).toContain("Adometry, Alereon, ACTIVE Network and AlterPoint");
   });
 
@@ -86,7 +98,7 @@ describe("problems are screens with a next step", () => {
   it.each([
     [{ kind: "unreachable" } as const, "Couldn't load startups right now", "Try again"],
     [{ kind: "server" } as const, "The recommender ran into a problem", "Try again"],
-    [{ kind: "unknown_investor" } as const, "We couldn't find that investor", "Choose another investor"],
+    [{ kind: "unknown_investor" } as const, "That investor isn't in the data", "Choose another investor"],
     [{ kind: "not_enough_history", pastDeals: 3, needed: 5 } as const, "Not enough history on ACT Venture Capital yet", "Choose another investor"],
     [{ kind: "bad_request", message: "" } as const, "The page asked for something the recommender can't answer", "Choose another investor"],
   ])("%#: %s", (p, title, action) => {
