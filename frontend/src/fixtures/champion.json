@@ -1,0 +1,7 @@
+{
+ "status": 200,
+ "body": {
+  "model": "label_similarity_full",
+  "version": 2
+ }
+}

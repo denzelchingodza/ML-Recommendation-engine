@@ -1,0 +1,436 @@
+{
+ "status": 200,
+ "body": {
+  "investor": "/financial-organization/sequoia-capital",
+  "name": "Sequoia Capital",
+  "past_deals": 184,
+  "champion": {
+   "model": "label_similarity_full",
+   "version": 2
+  },
+  "cutoff": "2012-01-01",
+  "hindsight_available": true,
+  "picks": [
+   {
+    "company": "/company/glassbeam-inc",
+    "name": "Glassbeam",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/trifacta",
+    "name": "Trifacta",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/insightly",
+    "name": "Insightly",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/qwilt",
+    "name": "Qwilt",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/conference-hound",
+    "name": "Conference Hound",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/mykonos-software",
+    "name": "Mykonos Software",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/accela",
+    "name": "Accela",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/electric-cloud",
+    "name": "Electric Cloud",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/contrail-systems",
+    "name": "Contrail Systems",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   },
+   {
+    "company": "/company/farmlogs",
+    "name": "FarmLogs",
+    "score": 0.7800742717639375,
+    "why": "Software startup in CA. Matches your CA deals (141, e.g. Aceva Technologies, Achates Power) and your software deals (24, e.g. Aceva Technologies, Achievers). CA counts for about 85% of the match.",
+    "by_chance": false,
+    "match": "close",
+    "equally_strong": 215,
+    "reasons": [
+     {
+      "label": "state",
+      "value": "CA",
+      "value_name": "California",
+      "part": 0.6666089231437284,
+      "past_deals": 141,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achates-power"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achates Power"
+      ]
+     },
+     {
+      "label": "category",
+      "value": "software",
+      "value_name": "software",
+      "part": 0.1134653486202091,
+      "past_deals": 24,
+      "examples": [
+       "/company/aceva-technologies",
+       "/company/achievers"
+      ],
+      "example_names": [
+       "Aceva Technologies",
+       "Achievers"
+      ]
+     }
+    ],
+    "backed_later": false
+   }
+  ]
+ }
+}

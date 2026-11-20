@@ -62,3 +62,32 @@ jobs:
       - name: Show the gate report on the run page
         if: always()
         run: cat "$RUNNER_TEMP/gate-report.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+  # Phase 8b: the demo page. Strict type check, the page's tests, and a production build.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install packages (exact versions from the lock file)
+        run: npm ci
+
+      - name: Type check (strict)
+        run: npm run typecheck
+
+      - name: Run the page's tests
+        run: npm test
+
+      - name: Build for production
+        run: npx vite build
