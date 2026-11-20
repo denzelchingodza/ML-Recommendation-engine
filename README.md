@@ -133,10 +133,11 @@ Metrics: **NDCG@k** and **recall@k** at **k = 10**, with 95% bootstrap confidenc
 **Phase 8b, the demo page (Scout Desk):**
 
 - A TypeScript page (Vite, no framework) in [`frontend/`](frontend): investor list on the left; **Overview**, **Results** and **Review** tabs on the right; one main action, **Find startups for this investor**.
-- Designed to rules agreed before building: no raw scores (results say "Same sector and state", with the numbers behind **How we worked this out**); every claim shows its evidence; uncertainty is its own screen ("Not enough history", "Couldn't load startups right now" with **Try again**, unsure picks in Review); one accent colour for one job; plain, user-side words.
+- Designed to rules agreed before building: no raw scores (results say "Same sector and state", with the raw score behind **Show the maths**); every claim shows its evidence; uncertainty is its own screen ("Not enough history", "Couldn't load startups right now" with **Try again**, unsure picks in Review); one accent colour for one job; plain, user-side words.
 - **Did it work?** compares the suggestions with what the investor really did after the cutoff (Austin Ventures: 3 of 10; Connecticut Innovations: 7 of 10; Sequoia Capital: 0 of 10).
 - The API gained what the page needed: a plain match state per pick, how many startups match equally well, an investor profile for Overview, and "not enough history" as its own answer.
-- Checked: strict TypeScript; 40 page tests on recorded real API answers (faithful names and marks, no numbers outside "How we worked this out", every problem screen, the full flow by mouse and keyboard); contrast measured with the WCAG formula (all text at least 4.5:1); and an end-to-end run against the real API in a real browser, including the API going down and recovering with **Try again**, 44px targets, and phone width.
+- Checked: strict TypeScript; 40 page tests on recorded real API answers (faithful names and marks, no numbers outside "Show the maths", every problem screen, the full flow by mouse and keyboard); contrast measured with the WCAG formula (all text at least 4.5:1); and an end-to-end run against the real API in a real browser, including the API going down and recovering with **Try again**, 44px targets, and phone width.
+- **The model speaks for itself:** the page never says "we". **How the model worked this out** shows its working as five steps with real figures (Battery Ventures: read 88 investments, found the pattern California and enterprise, searched 4,668 startups, matched 207 equally strong, picked 10 at random). Each result is labelled (Sector, State), **Did it work?** shows the outcome as figures, and the API's `/picks` now says how many startups it searched. A test fails if "we", "our" or "us" ever comes back.
 
 Pass marks are written down **before** each run, and failures are reported honestly in this README.
 
@@ -197,7 +198,7 @@ flowchart LR
 - **`staging`**: merged features are checked again here.
 - **`main`**: production. Changes only arrive from `staging`, and releases are tagged.
 - Nothing is pushed until it is proven to work. Every PR must pass CI.
-- `main` and `staging` are **protected**: no direct pushes, the `backend-tests` and `quality-gate` CI checks must pass before merging, and nobody can bypass these rules (the owner included). Force pushes and branch deletion are blocked.
+- `main` and `staging` are **protected**: no direct pushes, the `backend-tests`, `quality-gate` and `frontend` CI checks must pass before merging, and nobody can bypass these rules (the owner included). Force pushes and branch deletion are blocked.
 
 ---
 

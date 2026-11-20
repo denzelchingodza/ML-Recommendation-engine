@@ -213,3 +213,17 @@ Newest session at the bottom. Read this first at the start of every session.
 - Phase 8b PR, then promote to `main`.
 - Decide whether `frontend` becomes a required check.
 - Then Version 2 (company descriptions), and the maths walkthrough after the build.
+
+**Phase 8c · The model speaks (same session)**
+- Denzel asked for the results to show off how the model works, neatly and clearly, and for the page to speak as the model ("the model"), never "we".
+- Previewed on Battery Ventures' real data before any branch; Denzel approved it.
+- Built: **How the model worked this out** as five steps with real figures (read the history, found the pattern, searched, matched, picked), the raw score behind **Show the maths**, labelled results (Sector, State), and **Did it work?** as figures. The API's `/picks` now returns `searched`, the number of startups the model scored.
+- Pass marks, written before the run: backend 190 passed, 1 skipped, 7 expected failures; frontend 42 passed; typecheck and build clean; end-to-end all passing.
+- Results: backend 190 passed, 1 skipped, 7 expected failures (3 long season tests ran in MARA's copy, as they exceed the Mac shell's time limit); frontend 42 passed; typecheck and build clean; end-to-end 16 of 16 plus 5 of 5 for the API going down and recovering.
+- New tests: `searched` counts every startup the model scored; no screen says "we", "our" or "us"; the Searched step shows the real count.
+- MARA correction: said the 10 picks change between runs; they do not, the shuffle is seeded per investor.
+- README now lists all 3 required checks (`backend-tests`, `quality-gate`, `frontend`).
+
+**Next**
+- Phase 8c PR into `staging`, then promote to `main`.
+- Then Version 2 (company descriptions), and the walkthrough.

@@ -10,6 +10,7 @@
   },
   "cutoff": "2012-01-01",
   "hindsight_available": true,
+  "searched": 4680,
   "picks": [
    {
     "company": "/company/outboundengine",
